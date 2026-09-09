@@ -11,7 +11,8 @@
  * Response: task-specific JSON, or { error } with a non-200 status.
  *
  * Implemented tasks:
- *   scan_shelf — photos of a shelf -> candidate inventory items
+ *   scan_shelf     — photos of a shelf -> candidate inventory items
+ *   dedupe_catalog — existing inventory -> groups of likely-duplicate items
  *
  * Not yet implemented (call returns 501 with a clear message, not a
  * fake success) — wire these up here when the corresponding UI ships,
@@ -24,6 +25,7 @@
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const MAX_IMAGES = 4;
 const MAX_BYTES = 6 * 1024 * 1024;
+const MAX_CATALOG = 600;
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
@@ -39,14 +41,17 @@ export default async (req) => {
   switch (body.task) {
     case 'scan_shelf':
       return scanShelf(body, key);
+    case 'dedupe_catalog':
+      return dedupeCatalog(body, key);
     case 'parse_command':
     case 'receipt_scan':
     case 'price_lookup':
       return json({ error: `Task "${body.task}" is not implemented yet` }, 501);
     default:
-      return json({ error: 'Unknown or missing "task"', supported: ['scan_shelf'] }, 400);
+      return json({ error: 'Unknown or missing "task"', supported: ['scan_shelf', 'dedupe_catalog'] }, 400);
   }
 };
+
 
 /* ---------------- scan_shelf ---------------- */
 
@@ -175,6 +180,100 @@ async function scanShelf(body, key){
     }));
 
   return json({ items });
+}
+
+/* ---------------- dedupe_catalog ---------------- */
+
+async function dedupeCatalog(body, key){
+  const catalog = Array.isArray(body.catalog) ? body.catalog.slice(0, MAX_CATALOG) : [];
+  if (catalog.length < 2) return json({ groups: [] });
+
+  const validIds = new Set(catalog.map(i => i.id));
+
+  const prompt = [
+    'You are reviewing a household inventory app\'s product list for duplicate entries —',
+    'the same physical product that got added to the list more than once, usually because',
+    'it was named slightly differently each time (a flavour word dropped, brand casing',
+    'differs, extra descriptive text in parentheses, singular vs plural, etc).',
+    '',
+    'Group together only items you are reasonably confident are the exact same product.',
+    'Different scents, flavours, sizes, or variants of the same brand are NOT duplicates',
+    '(e.g. "דאודורנט AXE וניל" and "דאודורנט AXE קרמל" must stay separate). When genuinely',
+    'unsure, leave the item out of any group rather than guessing.',
+    '',
+    'Each group needs 2 or more item ids and a short reason in Hebrew explaining the match.',
+    'Do not include an item in more than one group. Items with no duplicate should not',
+    'appear anywhere in the output.',
+    '',
+    'Inventory (id = name / brand / current qty):',
+    ...catalog.map(i => `  ${i.id} = ${i.name}${i.brand ? ' / ' + i.brand : ''} / qty ${Number(i.qty)||0}`),
+    '',
+    'Return JSON only.'
+  ].join('\n');
+
+  const payload = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          groups: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                ids:    { type: 'ARRAY', items: { type: 'STRING' } },
+                reason: { type: 'STRING' }
+              },
+              required: ['ids', 'reason']
+            }
+          }
+        },
+        required: ['groups']
+      }
+    },
+    safetySettings: []
+  };
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    return json({ error: 'Could not reach the Gemini API' }, 502);
+  }
+
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 300);
+    return json({ error: `Gemini returned ${res.status}`, detail }, 502);
+  }
+
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+
+  let parsed;
+  try { parsed = JSON.parse(text); }
+  catch { return json({ error: 'Model did not return valid JSON', raw: text.slice(0, 300) }, 502); }
+
+  // Sanitise: drop unknown ids, groups left with fewer than 2 valid ids, and any
+  // id that (due to a model mistake) ended up claimed by more than one group.
+  const seen = new Set();
+  const groups = [];
+  for (const g of (parsed.groups || [])) {
+    const ids = [...new Set((g.ids || []).filter(id => validIds.has(id) && !seen.has(id)))];
+    if (ids.length < 2) continue;
+    ids.forEach(id => seen.add(id));
+    groups.push({ ids, reason: String(g.reason || '').trim().slice(0, 200) });
+  }
+
+  return json({ groups });
 }
 
 /* ---------------- shared helpers ---------------- */
