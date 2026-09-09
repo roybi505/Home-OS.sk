@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Home OS</title>
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Home OS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --line:#e6e9ef; --line2:#f0f2f6;
+  --ink:#111827; --ink2:#4b5563; --ink3:#9199a6;
+  --accent:#4f46e5; --accent-soft:#eef0ff;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#dc2626; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --r:14px; --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:"Rubik","Assistant","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.45;
+  display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+input,select,textarea{
+  width:100%; background:#fff; border:1px solid var(--line); border-radius:10px;
+  padding:9px 11px; outline:none;
+}
+input:focus,select,textarea:focus{border-color:var(--accent)}
+select{appearance:none;background:#fff}
+.hidden{display:none !important}
+.row{display:flex;align-items:center;gap:8px}
+.grow{flex:1;min-width:0}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muted{color:var(--ink3);font-size:12px}
+.scroll-x{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.scroll-x::-webkit-scrollbar{display:none}
+
+/* header */
+header{background:#fff;border-bottom:1px solid var(--line);padding:10px 12px 8px;flex-shrink:0}
+.brand{font-weight:700;font-size:16px;letter-spacing:-.2px}
+.iconbtn{
+  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:15px;background:#f2f4f8;flex-shrink:0
+}
+.iconbtn.on{background:var(--accent);color:#fff}
+.chip{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;
+  font-size:12.5px;font-weight:600;white-space:nowrap;
+  background:#fff;border:1px solid var(--line);color:var(--ink2);flex-shrink:0
+}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.cat.on{background:var(--accent-soft);color:var(--accent);border-color:#c9cdfa}
+.search{position:relative;margin:8px 0 6px}
+.search input{padding-right:32px;background:#f6f7f9;border-color:transparent}
+.search span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:13px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center}
+.stat b{display:block;font-size:19px;font-weight:700;line-height:1.15}
+.stat small{font-size:10.5px;color:var(--ink3);font-weight:500}
+.stat.w b{color:var(--warn)} .stat.d b{color:var(--danger)}
+
+main{flex:1;overflow-y:auto;padding:12px;padding-bottom:96px;-webkit-overflow-scrolling:touch}
+
+/* grid cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px;box-shadow:var(--shadow);display:flex;flex-direction:column;position:relative
+}
+.card.out{border-color:#f4c9c9;background:#fffafa}
+.card .emoji{font-size:18px;line-height:1}
+.card h3{font-size:13.5px;font-weight:600;line-height:1.3}
+.thumb{width:34px;height:34px;border-radius:9px;object-fit:cover;flex-shrink:0;background:#f2f4f8}
+.thumb-sm{width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#f2f4f8}
+.photo-box{width:100%;height:150px;border-radius:12px;background:#f2f4f8;object-fit:cover;
+  display:block;border:1px solid var(--line)}
+.photo-empty{width:100%;height:90px;border-radius:12px;background:#f2f4f8;border:1px dashed var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:12.5px}
+.badge{
+  position:absolute;top:8px;left:8px;font-size:9.5px;font-weight:700;
+  padding:2px 6px;border-radius:6px
+}
+.badge.low{background:var(--warn-soft);color:var(--warn)}
+.badge.out{background:var(--danger-soft);color:var(--danger)}
+.stepper{display:flex;align-items:center;background:#f2f4f8;border-radius:9px;padding:2px}
+.stepper button{width:27px;height:27px;border-radius:7px;background:#fff;
+  box-shadow:var(--shadow);font-size:15px;font-weight:600;color:var(--ink2)}
+.stepper button:active{transform:scale(.92)}
+.stepper .n{width:34px;text-align:center;font-weight:700;font-size:13px}
+.stepper .n.z{color:var(--danger)}
+.cardfoot{margin-top:auto;padding-top:9px;border-top:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:space-between;gap:6px}
+
+/* list */
+.group{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
+.group>header{background:#fafbfc;padding:7px 11px;border-bottom:1px solid var(--line2);
+  display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;position:static}
+.line{padding:9px 11px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line2)}
+.line:last-child{border-bottom:0}
+
+/* shopping */
+.shop-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-bottom:1px solid var(--line2)}
+.shop-item:last-child{border-bottom:0}
+.tick{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#fff}
+.tick.on{background:var(--ok);border-color:var(--ok)}
+.need{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);
+  padding:3px 8px;border-radius:7px;flex-shrink:0}
+
+/* fab */
+.fabs{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;
+  gap:9px;pointer-events:none;z-index:30;padding:0 12px}
+.fab{pointer-events:auto;display:flex;align-items:center;gap:7px;height:50px;padding:0 20px;
+  border-radius:25px;font-weight:700;font-size:14px;color:#fff;background:var(--ink);
+  box-shadow:0 8px 20px rgba(16,24,40,.22)}
+.fab.a{background:var(--accent)}
+.fab:active{transform:scale(.96)}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sheet{background:#fff;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;
+  border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+@media(min-width:560px){.overlay{align-items:center;padding:16px}.sheet{border-radius:18px}}
+.sheet h2{font-size:17px;font-weight:700;margin-bottom:2px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.btn{width:100%;padding:12px;border-radius:12px;font-weight:700;font-size:14.5px;
+  background:var(--ink);color:#fff;text-align:center}
+.btn.a{background:var(--accent)}
+.btn.g{background:#f2f4f8;color:var(--ink)}
+.btn.r{background:var(--danger-soft);color:var(--danger)}
+.btn:active{transform:scale(.985)}
+.empty{text-align:center;padding:48px 20px;color:var(--ink3)}
+.empty div:first-child{font-size:38px;margin-bottom:8px}
+
+/* toast */
+#toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;
+  transform:translate(-50%,-140%);z-index:99;background:var(--ink);color:#fff;
+  padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:600;
+  transition:transform .22s ease;box-shadow:0 8px 20px rgba(0,0,0,.2);max-width:90vw}
+#toast.show{transform:translate(-50%,0)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink3);flex-shrink:0}
+.dot.on{background:var(--ok)} .dot.err{background:var(--danger)}
+
+/* camera + scan staging */
+#cam{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:14px;background:#000;display:block}
+.shots{display:flex;gap:6px;overflow-x:auto;margin-top:8px;min-height:4px}
+.shots figure{position:relative;flex-shrink:0}
+.shots img{height:54px;border-radius:8px;border:1px solid var(--line);display:block}
+.shots button{position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:50%;
+  background:var(--danger);color:#fff;font-size:11px;line-height:1;display:flex;
+  align-items:center;justify-content:center}
+.shutter{width:62px;height:62px;border-radius:50%;background:#fff;border:4px solid var(--ink);
+  margin:12px auto;display:block}
+.shutter:active{transform:scale(.9)}
+.srow{padding:10px 0;border-bottom:1px solid var(--line2)}
+.srow:last-child{border-bottom:0}
+.srow .two{gap:6px;margin-top:6px}
+.srow input,.srow select{padding:7px 9px;font-size:13px}
+.pill{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0}
+.pill.new{background:var(--ok-soft);color:var(--ok)}
+.pill.upd{background:var(--accent-soft);color:var(--accent)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);
+  border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row">
+    <div style="width:32px;height:32px;border-radius:10px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px">🏠</div>
+    <div class="grow">
+      <div class="brand">Home OS</div>
+      <div class="row" style="gap:5px"><span class="dot" id="syncDot"></span><span class="muted" id="syncTxt">מקומי בלבד</span></div>
+    </div>
+    <button class="iconbtn" id="btnShop" title="רשימת קניות">🛒</button>
+    <button class="iconbtn" id="btnSettings" title="הגדרות">⚙️</button>
+  </div>
+
+  <div class="search">
+    <input id="q" type="search" placeholder="חיפוש מוצר או מותג…">
+    <span>🔍</span>
+  </div>
+
+  <div class="scroll-x" id="spaces"></div>
+  <div class="scroll-x" id="cats" style="margin-top:6px"></div>
+</header>
+
+<main>
+  <div class="stats">
+    <div class="stat"><b id="sUnits">0</b><small>יחידות</small></div>
+    <div class="stat"><b id="sTypes">0</b><small>מוצרים</small></div>
+    <div class="stat w"><b id="sLow">0</b><small>לקראת סוף</small></div>
+    <div class="stat d"><b id="sOut">0</b><small>אזלו</small></div>
+  </div>
+
+  <div class="row" style="margin-bottom:9px">
+    <div class="grow muted" id="countTxt"></div>
+    <div class="row" style="gap:4px">
+      <button class="iconbtn on" id="vGrid" style="width:32px;height:30px;font-size:13px">▦</button>
+      <button class="iconbtn" id="vList" style="width:32px;height:30px;font-size:13px">☰</button>
+    </div>
+  </div>
+
+  <div id="view"></div>
+</main>
+
+<div class="fabs">
+  <button class="fab" id="fabScan">📷 סרוק ארון</button>
+  <button class="fab a" id="fabAdd">＋ הוסף</button>
+</div>
+
+<div id="toast"></div>
+<div id="modals"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   HOME OS — single-file, local-first, optional Firebase sync
+   Data lives in localStorage. Firebase (if configured) mirrors it.
+   ============================================================ */
+
+const LS_DATA = 'homeos_v2';
+const LS_FB   = 'homeos_fbcfg';
+const MAX_EVENTS = 500;
+
+const DEFAULT_SPACES = [
+  {id:'bathroom', name:'חדר רחצה',  emoji:'🚿'},
+  {id:'kitchen',  name:'מטבח ומזווה', emoji:'🍳'},
+  {id:'bedroom',  name:'חדר שינה',  emoji:'🛏️'},
+  {id:'study',    name:'עמדת לימוד', emoji:'🩺'},
+];
+const DEFAULT_CATS = [
+  {id:'grooming',     name:'בישום וטיפוח', emoji:'🧴'},
+  {id:'bath_hygiene', name:'רחצה והיגיינה', emoji:'🧼'},
+  {id:'laundry_home', name:'כביסה ורענון',  emoji:'👕'},
+  {id:'food',         name:'מזון ומשקאות',  emoji:'🥫'},
+  {id:'coffee',       name:'קפה',           emoji:'☕'},
+  {id:'medstudy',     name:'ציוד לימודים',  emoji:'📚'},
+  {id:'health',       name:'עזרה ראשונה',   emoji:'🩹'},
+];
+
+let S = {
+  items:[], spaces:[], cats:[], extras:[], events:[],
+  meta:{ updatedAt:0 }
+};
+const UI = { space:'all', cat:'all', view:'grid', q:'' };
+
+/* ---------- helpers ---------- */
+const $  = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let toastT;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ---------- persistence ---------- */
+function save(push = true){
+  S.meta.updatedAt = Date.now();
+  if (S.events.length > MAX_EVENTS) S.events = S.events.slice(-MAX_EVENTS);
+  try { localStorage.setItem(LS_DATA, JSON.stringify(S)); }
+  catch(e){ toast('אחסון מקומי מלא'); }
+  if (push) pushRemote();
+  render();
+}
+
+function load(){
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(LS_DATA) || 'null'); } catch(e){}
+  if (raw && Array.isArray(raw.items)) {
+    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],meta:{updatedAt:0}}, raw);
+  }
+  if (!S.spaces.length) S.spaces = DEFAULT_SPACES.map(x=>({...x}));
+  if (!S.cats.length)   S.cats   = DEFAULT_CATS.map(x=>({...x}));
+  S.extras = S.extras || []; S.events = S.events || []; S.meta = S.meta || {updatedAt:0};
+}
+
+/* every quantity change is recorded — inventory is reconstructable */
+function logEvent(type, itemId, delta, note){
+  S.events.push({ id:uid(), ts:Date.now(), type, itemId, delta:delta||0, note:note||'' });
+}
+
+/* ---------- derived ---------- */
+function visible(){
+  const q = UI.q.trim().toLowerCase();
+  return S.items.filter(it=>{
+    if (UI.space !== 'all' && it.spaceId !== UI.space) return false;
+    if (UI.cat   !== 'all' && it.catId   !== UI.cat)   return false;
+    if (!q) return true;
+    return (it.name||'').toLowerCase().includes(q)
+        || (it.brand||'').toLowerCase().includes(q);
+  });
+}
+const spaceOf = id => S.spaces.find(s=>s.id===id);
+const catOf   = id => S.cats.find(c=>c.id===id) || {name:'ללא קטגוריה', emoji:'📦'};
+
+function shortages(){
+  return S.items
+    .map(it => ({ item:it, need: Math.max(0, (Number(it.target)||0) - (Number(it.qty)||0)) }))
+    .filter(x => x.need > 0)
+    .sort((a,b)=> (a.item.qty - b.item.qty) || b.need - a.need);
+}
+
+/* ---------- render ---------- */
+function render(){ renderChips(); renderStats(); renderView(); }
+
+function renderChips(){
+  const sp = $('spaces');
+  sp.innerHTML = ['all', ...S.spaces.map(s=>s.id)].map(id=>{
+    const s = id==='all' ? {name:'כל הבית', emoji:'🏠'} : spaceOf(id);
+    const n = id==='all' ? S.items.length : S.items.filter(i=>i.spaceId===id).length;
+    return `<button class="chip ${UI.space===id?'on':''}" data-sp="${esc(id)}">
+      ${s.emoji} ${esc(s.name)} <span style="opacity:.6">${n}</span></button>`;
+  }).join('');
+
+  const ct = $('cats');
+  const used = new Set(S.items
+    .filter(i=>UI.space==='all'||i.spaceId===UI.space).map(i=>i.catId));
+  ct.innerHTML = ['all', ...S.cats.filter(c=>used.has(c.id)).map(c=>c.id)].map(id=>{
+    const c = id==='all' ? {name:'הכל', emoji:'📋'} : catOf(id);
+    return `<button class="chip cat ${UI.cat===id?'on':''}" data-ct="${esc(id)}">
+      ${c.emoji} ${esc(c.name)}</button>`;
+  }).join('');
+}
+
+function renderStats(){
+  const v = visible();
+  $('sUnits').textContent = v.reduce((a,i)=>a+(Number(i.qty)||0),0);
+  $('sTypes').textContent = v.length;
+  $('sLow').textContent   = v.filter(i=>i.qty>0 && i.qty < (Number(i.target)||1)).length;
+  $('sOut').textContent   = v.filter(i=>!i.qty).length;
+  const sh = shortages().length;
+  $('countTxt').textContent = sh ? `${sh} פריטים לקנייה` : 'המלאי מלא';
+}
+
+function renderView(){
+  const v = visible(), el = $('view');
+  if (!S.items.length){
+    el.innerHTML = `<div class="empty"><div>📦</div>
+      <div style="font-weight:600;color:var(--ink2)">המלאי ריק</div>
+      <div style="margin-top:4px">הוסף מוצר ראשון, או שחזר גיבוי דרך ⚙️</div></div>`;
+    return;
+  }
+  if (!v.length){
+    el.innerHTML = `<div class="empty"><div>🔍</div><div>לא נמצאו תוצאות</div></div>`;
+    return;
+  }
+  el.innerHTML = UI.view === 'grid' ? gridHTML(v) : listHTML(v);
+}
+
+function photoSrc(it){ return it.photo || it.photoUrl || ''; }
+
+function gridHTML(items){
+  return `<div class="grid">` + items.map(it=>{
+    const c = catOf(it.catId), t = Number(it.target)||1, q = Number(it.qty)||0;
+    const badge = q===0 ? `<span class="badge out">אזל</span>`
+                : q < t ? `<span class="badge low">חסר ${t-q}</span>` : '';
+    const src = photoSrc(it);
+    return `<div class="card ${q===0?'out':''}">${badge}
+      <div class="row" style="align-items:flex-start;gap:8px;margin-bottom:6px">
+        ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<span class="emoji">${c.emoji}</span>`}
+        <div class="grow" style="padding-left:44px">
+          <h3 class="trunc">${esc(it.name)}</h3>
+          <div class="muted trunc">${esc(it.brand||c.name)}</div>
+        </div>
+      </div>
+      <div class="cardfoot">
+        ${stepperHTML(it)}
+        <button class="iconbtn" style="width:27px;height:27px;font-size:12px;background:transparent" data-edit="${it.id}">✏️</button>
+      </div></div>`;
+  }).join('') + `</div>`;
+}
+
+function listHTML(items){
+  const groups = {};
+  items.forEach(i => (groups[i.catId] = groups[i.catId] || []).push(i));
+  return Object.entries(groups).map(([cid, arr])=>{
+    const c = catOf(cid);
+    return `<div class="group"><header>${c.emoji} ${esc(c.name)}
+        <span class="muted" style="margin-inline-start:auto">${arr.length}</span></header>
+      ${arr.map(it=>{ const src = photoSrc(it); return `<div class="line">
+        ${src ? `<img class="thumb-sm" src="${esc(src)}" alt="">` : ''}
+        <div class="grow" data-edit="${it.id}">
+          <div class="trunc" style="font-weight:600;font-size:13.5px">${esc(it.name)}</div>
+          <div class="muted trunc">${esc(it.brand||'')} · יעד ${Number(it.target)||1}</div>
+        </div>${stepperHTML(it)}</div>`; }).join('')}</div>`;
+  }).join('');
+}
+
+function stepperHTML(it){
+  const q = Number(it.qty)||0;
+  return `<div class="stepper">
+    <button data-q="${it.id}" data-d="-1">−</button>
+    <span class="n ${q===0?'z':''}">${q}</span>
+    <button data-q="${it.id}" data-d="1">+</button></div>`;
+}
+
+/* ---------- item CRUD ---------- */
+function compressImageFile(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('קריאת הקובץ נכשלה'));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('לא ניתן לקרוא את התמונה'));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+function openItem(id){
+  const it = id ? S.items.find(i=>i.id===id) : null;
+  let pendingPhoto = it ? (it.photo || it.photoUrl || '') : '';
+  const spOpts = S.spaces.map(s=>`<option value="${esc(s.id)}" ${it&&it.spaceId===s.id?'selected':''}>${s.emoji} ${esc(s.name)}</option>`).join('');
+  const ctOpts = S.cats.map(c=>`<option value="${esc(c.id)}" ${it&&it.catId===c.id?'selected':''}>${c.emoji} ${esc(c.name)}</option>`).join('');
+
+  sheet(`
+    <h2>${it ? 'עריכת מוצר' : 'מוצר חדש'}</h2>
+    <p class="muted" style="margin-bottom:14px">"יעד" = כמה יחידות אתה רוצה שיהיו בבית. ההפרש נכנס אוטומטית לרשימת הקניות.</p>
+
+    <div id="photoPreviewWrap" style="margin-bottom:10px"></div>
+    <div class="two" style="margin-bottom:10px">
+      <button type="button" class="btn g" id="photoCamBtn">📷 צלם</button>
+      <button type="button" class="btn g" id="photoGalBtn">🖼️ מהגלריה</button>
+    </div>
+    <input type="file" accept="image/*" capture="environment" id="fPhotoCam" class="hidden">
+    <input type="file" accept="image/*" id="fPhotoGal" class="hidden">
+
+    <div class="field"><label>שם המוצר *</label><input id="fName" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
+    <div class="field"><label>מותג</label><input id="fBrand" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
+    <div class="two">
+      <div class="field"><label>חלל</label><select id="fSpace">${spOpts}</select></div>
+      <div class="field"><label>קטגוריה</label><select id="fCat">${ctOpts}</select></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>כמות נוכחית</label><input id="fQty" type="number" inputmode="numeric" min="0" value="${it?(Number(it.qty)||0):1}"></div>
+      <div class="field"><label>כמות יעד</label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${it?(Number(it.target)||1):1}"></div>
+    </div>
+    <div class="field"><label>הערה</label><input id="fNote" value="${it?esc(it.note||''):''}" placeholder="גודל, חנות מועדפת, מחיר…"></div>
+    <button class="btn a" id="fSave" style="margin-top:4px">שמירה</button>
+    ${it?`<button class="btn r" id="fDel" style="margin-top:8px">מחיקת המוצר</button>`:''}
+    <button class="btn g" id="fCancel" style="margin-top:8px">ביטול</button>
+  `, () => {
+    function paintPhoto(){
+      $('photoPreviewWrap').innerHTML = pendingPhoto
+        ? `<div style="position:relative"><img class="photo-box" src="${esc(pendingPhoto)}" alt="">
+             <button type="button" id="photoRemove" class="iconbtn" style="position:absolute;top:6px;left:6px;background:rgba(17,24,39,.55);color:#fff">✕</button></div>`
+        : `<div class="photo-empty">אין תמונה</div>`;
+      if ($('photoRemove')) $('photoRemove').onclick = () => { pendingPhoto = ''; paintPhoto(); };
+    }
+    paintPhoto();
+
+    $('photoCamBtn').onclick = () => $('fPhotoCam').click();
+    $('photoGalBtn').onclick = () => $('fPhotoGal').click();
+    async function handlePhotoFile(e){
+      const file = e.target.files[0]; e.target.value = '';
+      if (!file) return;
+      try { pendingPhoto = await compressImageFile(file, 640, 0.65); paintPhoto(); }
+      catch(err){ toast(err.message); }
+    }
+    $('fPhotoCam').onchange = handlePhotoFile;
+    $('fPhotoGal').onchange = handlePhotoFile;
+
+    $('fCancel').onclick = closeSheet;
+    $('fSave').onclick = () => {
+      const name = $('fName').value.trim();
+      if (!name) return toast('חסר שם מוצר');
+      const tRaw = $('fTarget').value.trim();
+      const photoChanged = pendingPhoto !== (it ? (it.photo || it.photoUrl || '') : '');
+      const data = {
+        name, brand:$('fBrand').value.trim(),
+        spaceId:$('fSpace').value, catId:$('fCat').value,
+        qty:Math.max(0, parseInt($('fQty').value)||0),
+        // blank target keeps the previous value instead of silently becoming 0
+        // (target 0 is a valid "don't restock" choice, but only when typed on purpose)
+        target: tRaw === '' ? (it ? Number(it.target)||0 : 1) : Math.max(0, parseInt(tRaw)||0),
+        note:$('fNote').value.trim()
+      };
+      if (photoChanged){
+        data.photo = pendingPhoto;
+        if (!pendingPhoto) data.photoUrl = ''; // explicit removal clears the cloud copy too
+      }
+      let targetItem;
+      if (it){
+        if (it.qty !== data.qty) logEvent('CORRECTION', it.id, data.qty - it.qty, 'עריכה ידנית');
+        Object.assign(it, data);
+        targetItem = it;
+      } else {
+        const n = {id:uid(), ...data, createdAt:Date.now()};
+        S.items.push(n);
+        logEvent('PURCHASE', n.id, data.qty, 'מוצר חדש');
+        targetItem = n;
+      }
+      closeSheet(); save(); toast(it?'המוצר עודכן':'המוצר נוסף');
+      // upload happens after the local save already succeeded — a slow/failed
+      // upload never blocks or loses the item itself, only the cloud copy of the photo
+      if (photoChanged && pendingPhoto) uploadItemPhoto(targetItem, pendingPhoto);
+    };
+    if (it) $('fDel').onclick = () => {
+      if (!confirm(`למחוק את "${it.name}"?`)) return;
+      S.items = S.items.filter(x=>x.id!==it.id);
+      logEvent('DELETE', it.id, -(Number(it.qty)||0), it.name);
+      closeSheet(); save(); toast('נמחק');
+    };
+    setTimeout(()=>$('fName').focus(), 60);
+  });
+}
+
+/* ---------- shopping list ---------- */
+function openShop(){
+  const sh = shortages();
+  const body = (!sh.length && !S.extras.length)
+    ? `<div class="empty"><div>✅</div><div>אין מה לקנות</div>
+       <div class="muted" style="margin-top:4px">הגדר "כמות יעד" למוצרים כדי שחוסרים יופיעו כאן</div></div>`
+    : `<div class="group" style="margin-top:10px">
+        ${sh.map(({item,need})=>`<div class="shop-item">
+          <div class="tick ${item._got?'on':''}" data-got="${item.id}">✓</div>
+          <div class="grow" style="${item._got?'opacity:.45;text-decoration:line-through':''}">
+            <div class="trunc" style="font-weight:600;font-size:13.5px">${catOf(item.catId).emoji} ${esc(item.name)}</div>
+            <div class="muted trunc">${esc(item.brand||'')}${item.note?' · '+esc(item.note):''}</div>
+          </div>
+          <span class="need">×${need}</span></div>`).join('')}
+        ${S.extras.map(e=>`<div class="shop-item">
+          <div class="tick ${e.got?'on':''}" data-xgot="${e.id}">✓</div>
+          <div class="grow trunc" style="font-weight:600;font-size:13.5px;${e.got?'opacity:.45;text-decoration:line-through':''}">📝 ${esc(e.text)}</div>
+          <button class="iconbtn" style="width:26px;height:26px;background:transparent;font-size:12px" data-xdel="${e.id}">🗑️</button>
+        </div>`).join('')}
+      </div>`;
+
+  sheet(`
+    <h2>רשימת קניות</h2>
+    <p class="muted">${sh.length} חוסרים מהמלאי · ${S.extras.length} פריטים ידניים</p>
+    <div class="row" style="margin-top:12px">
+      <input id="xNew" placeholder="הוסף פריט חופשי…" class="grow">
+      <button class="iconbtn on" id="xAdd" style="width:40px;height:38px">＋</button>
+    </div>
+    ${body}
+    <button class="btn a" id="waBtn" style="margin-top:14px">שליחה לוואטסאפ</button>
+    <button class="btn g" id="cpBtn" style="margin-top:8px">העתקה כטקסט</button>
+    <button class="btn g" id="doneBtn" style="margin-top:8px">סמן מסומנים כנקנו והפחת חוסרים</button>
+    <button class="btn g" id="xClose" style="margin-top:8px">סגירה</button>
+  `, () => {
+    $('xClose').onclick = closeSheet;
+    $('xAdd').onclick = () => {
+      const t = $('xNew').value.trim(); if(!t) return;
+      S.extras.push({id:uid(), text:t, got:false}); save(false); openShop();
+    };
+    $('xNew').onkeydown = e => { if(e.key==='Enter') $('xAdd').click(); };
+
+    document.querySelectorAll('[data-got]').forEach(el => el.onclick = () => {
+      const it = S.items.find(i=>i.id===el.dataset.got); it._got = !it._got; openShop();
+    });
+    document.querySelectorAll('[data-xgot]').forEach(el => el.onclick = () => {
+      const e = S.extras.find(x=>x.id===el.dataset.xgot); e.got = !e.got; save(false); openShop();
+    });
+    document.querySelectorAll('[data-xdel]').forEach(el => el.onclick = () => {
+      S.extras = S.extras.filter(x=>x.id!==el.dataset.xdel); save(false); openShop();
+    });
+
+    $('waBtn').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(shopText()), '_blank');
+    $('cpBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(shopText()); toast('הועתק'); }
+      catch(e){ toast('ההעתקה נחסמה בדפדפן'); }
+    };
+    $('doneBtn').onclick = () => {
+      let n = 0;
+      shortages().forEach(({item,need}) => {
+        if (!item._got) return;
+        item.qty = (Number(item.qty)||0) + need;
+        logEvent('PURCHASE', item.id, need, 'קנייה מהרשימה');
+        delete item._got; n++;
+      });
+      S.extras = S.extras.filter(e=>!e.got);
+      closeSheet(); save();
+      toast(n ? `${n} מוצרים עודכנו` : 'לא סומן כלום');
+    };
+  });
+}
+
+function shopText(){
+  const sh = shortages();
+  let t = '🛒 רשימת קניות — Home OS\n';
+  const byCat = {};
+  sh.forEach(({item,need}) => (byCat[item.catId] = byCat[item.catId]||[]).push({item,need}));
+  Object.entries(byCat).forEach(([cid, arr]) => {
+    const c = catOf(cid);
+    t += `\n${c.emoji} ${c.name}\n`;
+    arr.forEach(({item,need}) => {
+      t += `• ${item.name}${item.brand?' ('+item.brand+')':''} ×${need}\n`;
+    });
+  });
+  const ex = S.extras.filter(e=>!e.got);
+  if (ex.length){ t += `\n📝 נוסף ידנית\n`; ex.forEach(e=> t += `• ${e.text}\n`); }
+  return t.trim() || 'הרשימה ריקה';
+}
+
+/* ---------- settings / backup / sync ---------- */
+function openSettings(){
+  const cfg = localStorage.getItem(LS_FB) || '';
+  sheet(`
+    <h2>הגדרות</h2>
+
+    <div style="margin-top:14px;font-weight:700;font-size:13.5px">ניקוי מלאי</div>
+    <p class="muted" style="margin-bottom:8px">בדיקה חד-פעמית של כל המלאי מול עצמו, למקרה שאותו מוצר נכנס פעמיים בשמות שונים.</p>
+    <button class="btn g" id="dedupeBtn">🧹 חפש כפילויות</button>
+
+    <div style="margin-top:20px;font-weight:700;font-size:13.5px">גיבוי מקומי</div>
+    <p class="muted" style="margin-bottom:8px">גיבוי JSON הוא רשת הביטחון שלך. עשה אותו לפני כל שינוי גדול.</p>
+    <div class="two">
+      <button class="btn g" id="expBtn">ייצוא JSON</button>
+      <button class="btn g" id="impBtn">ייבוא JSON</button>
+    </div>
+    <input type="file" id="impFile" accept=".json,application/json" class="hidden">
+
+    <div style="margin-top:20px;font-weight:700;font-size:13.5px">סנכרון Firebase (רשות)</div>
+    <p class="muted" style="margin-bottom:8px">
+      צור פרויקט ב-console.firebase.google.com, הפעל Firestore ו-Anonymous Authentication,
+      והדבק כאן את אובייקט ה-config. האפליקציה עובדת מצוין גם בלי זה — הכל נשמר מקומית.
+    </p>
+    <div class="field"><textarea id="fbCfg" rows="6" placeholder='{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}' style="font-family:ui-monospace,monospace;font-size:11.5px;direction:ltr;text-align:left">${esc(cfg)}</textarea></div>
+    <button class="btn a" id="fbSave">שמירה והתחברות</button>
+    ${cfg?`<button class="btn g" id="fbOff" style="margin-top:8px">ניתוק וחזרה למצב מקומי</button>`:''}
+
+    <div style="margin-top:20px;font-weight:700;font-size:13.5px">היסטוריה</div>
+    <p class="muted">${S.events.length} אירועי מלאי רשומים (${MAX_EVENTS} אחרונים נשמרים).</p>
+
+    <button class="btn g" id="sClose" style="margin-top:18px">סגירה</button>
+  `, () => {
+    $('sClose').onclick = closeSheet;
+    $('dedupeBtn').onclick = openDedupe;
+    $('expBtn').onclick = exportJSON;
+    $('impBtn').onclick = () => $('impFile').click();
+    $('impFile').onchange = importJSON;
+    $('fbSave').onclick = () => {
+      const raw = $('fbCfg').value.trim();
+      if (!raw) return toast('הדבק config');
+      try { const p = JSON.parse(raw); if(!p.projectId) throw 0; }
+      catch(e){ return toast('ה-config אינו JSON תקין'); }
+      localStorage.setItem(LS_FB, raw);
+      closeSheet(); initFirebase();
+    };
+    if ($('fbOff')) $('fbOff').onclick = () => {
+      localStorage.removeItem(LS_FB); closeSheet();
+      setSync('off','מקומי בלבד'); toast('נותק — הנתונים נשארו מקומית');
+    };
+  });
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `home-os-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+  toast('הגיבוי ירד');
+}
+
+function importJSON(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const p = JSON.parse(ev.target.result);
+      const items = p.items || (Array.isArray(p) ? p : null);
+      if (!Array.isArray(items)) return toast('קובץ לא תקין');
+      if (S.items.length && !confirm(`לייבא ${items.length} מוצרים ולהחליף את ${S.items.length} הקיימים?`)) return;
+      S.items  = items.map(i => ({
+        id:i.id||uid(), name:i.name||'ללא שם', brand:i.brand||'',
+        spaceId:i.spaceId||'bathroom', catId:i.catId||i.categoryId||'grooming',
+        qty:Number(i.qty)||0, target:Number(i.target)|| (Number(i.qty)||1), note:i.note||'',
+        photo:i.photo||'', photoUrl:i.photoUrl||'', createdAt:i.createdAt||Date.now()
+      }));
+      if (p.spaces && p.spaces.length) S.spaces = p.spaces.filter(x=>x.id!=='all')
+        .map(x=>({id:x.id, name:x.name, emoji:x.emoji||'📦'}));
+      if (p.cats || p.categories) S.cats = (p.cats||p.categories).filter(x=>x.id!=='all')
+        .map(x=>({id:x.id, name:x.name, emoji:x.emoji||'📦'}));
+      if (p.extras) S.extras = p.extras;
+      if (p.events) S.events = p.events;
+      closeSheet(); save(); toast(`${S.items.length} מוצרים יובאו`);
+    } catch(err){ toast('שגיאה בקריאת הקובץ'); }
+  };
+  r.readAsText(f); e.target.value = '';
+}
+
+/* ---------- Firebase (lazy, optional) ----------
+   Firestore documents are capped around 1MB, so base64 photos never go
+   into the synced doc — only the local copy. When Storage is wired up,
+   uploadItemPhoto() pushes the actual bytes there and only a short URL
+   string rides along in the synced document. */
+let fb = null, remoteWrite = null, syncing = false;
+
+function setSync(state, txt){
+  $('syncDot').className = 'dot' + (state==='on'?' on':state==='err'?' err':'');
+  $('syncTxt').textContent = txt;
+}
+
+async function initFirebase(){
+  const raw = localStorage.getItem(LS_FB);
+  if (!raw) return setSync('off','מקומי בלבד');
+  setSync('off','מתחבר…');
+  try {
+    const cfg = JSON.parse(raw);
+    const V = 'https://www.gstatic.com/firebasejs/10.12.5/';
+    const [app, auth, fs, st] = await Promise.all([
+      import(V+'firebase-app.js'), import(V+'firebase-auth.js'),
+      import(V+'firebase-firestore.js'), import(V+'firebase-storage.js')
+    ]);
+    const a = app.initializeApp(cfg);
+    const au = auth.getAuth(a);
+    const cred = await auth.signInAnonymously(au);
+    const db = fs.getFirestore(a);
+    const ref = fs.doc(db, 'homeos', cred.user.uid);
+    const storage = st.getStorage(a);
+    fb = {fs, ref, st, storage, uid: cred.user.uid};
+
+    remoteWrite = () => fs.setDoc(ref, JSON.parse(JSON.stringify({
+      // photo (base64) stays local-only — only the Storage URL is synced
+      items: S.items.map(({photo, ...rest}) => rest),
+      spaces:S.spaces, cats:S.cats, extras:S.extras,
+      events:S.events.slice(-200), meta:S.meta
+    })), {merge:false}).catch(()=>setSync('err','שגיאת סנכרון'));
+
+    fs.onSnapshot(ref, snap => {
+      const d = snap.data();
+      if (!d) { remoteWrite(); return; }
+      if ((d.meta?.updatedAt||0) > (S.meta.updatedAt||0)) {
+        const photoCache = {};
+        S.items.forEach(i => { if (i.photo) photoCache[i.id] = i.photo; });
+        S = Object.assign(S, d);
+        S.items = (S.items||[]).map(i => photoCache[i.id] ? {...i, photo:photoCache[i.id]} : i);
+        localStorage.setItem(LS_DATA, JSON.stringify(S));
+        render(); toast('סונכרן ממכשיר אחר');
+      }
+      setSync('on','מסונכרן');
+    }, () => setSync('err','אין הרשאה ל-Firestore'));
+
+    setSync('on','מסונכרן');
+  } catch(e){
+    console.error(e);
+    setSync('err','החיבור נכשל — עובד מקומית');
+  }
+}
+function pushRemote(){ if (remoteWrite) remoteWrite(); }
+
+/* uploads the compressed photo to Firebase Storage and records its URL.
+   Fires after the item is already saved locally, so a slow network or a
+   missing Storage setup never costs the user their item — only the
+   cross-device copy of the photo. */
+async function uploadItemPhoto(item, dataUrl){
+  if (!fb || !fb.storage) return; // no Firebase configured — local copy is enough
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `homeos/${fb.uid}/items/${item.id}.jpg`;
+    const sref = fb.st.ref(fb.storage, path);
+    await fb.st.uploadBytes(sref, blob, {contentType:'image/jpeg'});
+    item.photoUrl = await fb.st.getDownloadURL(sref);
+    save();
+  } catch(e){
+    console.error(e);
+    toast('התמונה נשמרה מקומית, אך ההעלאה לענן נכשלה');
+  }
+}
+
+/* ============================================================
+   VISION SCANNER
+   Photos never touch the filesystem. They are captured to a
+   canvas, sent to /.netlify/functions/ai-hub as task 'scan_shelf'
+   (a single Gemini-backed function meant to grow future AI
+   features under, not just this one), and discarded. Nothing
+   enters the inventory until you approve it in the staging table.
+   A client-side fuzzy check (fuzzyCandidate, below) also flags
+   likely duplicates the model itself didn't match.
+   ============================================================ */
+const AI_ENDPOINT = '/.netlify/functions/ai-hub';
+const MAX_SHOTS = 4;
+let camStream = null, shots = [];
+
+function stopCam(){
+  if (camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+}
+
+async function openScanner(){
+  shots = [];
+  sheet(`
+    <h2>סריקת ארון</h2>
+    <p class="muted" style="margin-bottom:10px">
+      צלם עד ${MAX_SHOTS} תמונות של המדף. התמונות לא נשמרות בטלפון ולא במסד הנתונים —
+      הן נשלחות לניתוח ונמחקות. שום דבר לא נכנס למלאי לפני אישור שלך.
+    </p>
+    <video id="cam" autoplay playsinline muted></video>
+    <button class="shutter" id="snap" aria-label="צלם"></button>
+    <div class="shots" id="shots"></div>
+    <button class="btn a" id="analyze" style="margin-top:12px">נתח <span id="nShots"></span></button>
+    <button class="btn g" id="camClose" style="margin-top:8px">ביטול</button>
+    <div id="camErr" class="muted" style="margin-top:10px;text-align:center"></div>
+  `, async () => {
+    $('camClose').onclick = () => { stopCam(); closeSheet(); };
+    $('snap').onclick = snap;
+    $('analyze').onclick = analyze;
+    updateShots();
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:{ideal:'environment'}, width:{ideal:1920} }, audio:false
+      });
+      $('cam').srcObject = camStream;
+    } catch(err){
+      $('cam').classList.add('hidden'); $('snap').classList.add('hidden');
+      $('camErr').textContent = location.protocol === 'https:' || location.hostname === 'localhost'
+        ? 'אין גישה למצלמה. אשר את ההרשאה בהגדרות הדפדפן.'
+        : 'המצלמה דורשת HTTPS. פתח את האתר דרך הכתובת של Netlify, לא כקובץ מקומי.';
+    }
+  });
+}
+
+function snap(){
+  if (shots.length >= MAX_SHOTS) return toast(`מקסימום ${MAX_SHOTS} תמונות`);
+  const v = $('cam');
+  if (!v.videoWidth) return;
+  const max = 1024;
+  const scale = Math.min(1, max / Math.max(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * scale);
+  c.height = Math.round(v.videoHeight * scale);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  shots.push(c.toDataURL('image/jpeg', 0.75));
+  updateShots();
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function updateShots(){
+  const el = $('shots'); if(!el) return;
+  el.innerHTML = shots.map((s,i)=>
+    `<figure><img src="${s}" alt=""><button data-shot="${i}">×</button></figure>`).join('');
+  el.querySelectorAll('[data-shot]').forEach(b => b.onclick = () => {
+    shots.splice(Number(b.dataset.shot),1); updateShots();
+  });
+  $('nShots').textContent = shots.length ? `(${shots.length})` : '';
+  $('analyze').style.opacity = shots.length ? '1' : '.45';
+}
+
+async function analyze(){
+  if (!shots.length) return toast('צלם לפחות תמונה אחת');
+  const btn = $('analyze');
+  btn.innerHTML = '<span class="spin"></span> מנתח…';
+  btn.disabled = true;
+  try {
+    const res = await fetch(AI_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        task: 'scan_shelf',
+        images: shots.map(s => s.split(',')[1]),
+        space: UI.space === 'all' ? null : (spaceOf(UI.space)||{}).name,
+        cats: S.cats.map(c => ({id:c.id, name:c.name})),
+        catalog: S.items.map(i => ({id:i.id, name:i.name, brand:i.brand||''}))
+      })
+    });
+    if (!res.ok) throw new Error(res.status === 404
+      ? 'ה-Function לא נמצאה — האם האתר פרוס ב-Netlify?'
+      : (await res.text()).slice(0,140));
+    const data = await res.json();
+    stopCam();
+    openStaging(data.items || []);
+  } catch(err){
+    btn.disabled = false; btn.innerHTML = 'נסה שוב';
+    $('camErr').textContent = 'הניתוח נכשל: ' + err.message;
+  }
+}
+
+/* ---------- client-side duplicate guard ----------
+   The model's own matchId is a judgment call against a text list — it
+   misses cases like "קפה נמס וניל" vs "קפה נמס בטעם וניל" (same product,
+   reworded between two scans). This is a second, independent check that
+   doesn't depend on the model getting it right: plain token overlap.
+   It only ever *suggests*; nothing is merged without the user tapping
+   the suggestion. Used both live during scan staging, and on demand
+   for a full-catalog cleanup pass (openDedupe). */
+function normTokens(s){
+  return (s||'').toLowerCase()
+    .replace(/[()׳"'.,\-–]/g,' ')
+    .split(/\s+/).filter(Boolean);
+}
+function similarity(nameA, brandA, nameB, brandB){
+  const a = new Set(normTokens(nameA + ' ' + (brandA||'')));
+  const b = new Set(normTokens(nameB + ' ' + (brandB||'')));
+  if (!a.size || !b.size) return 0;
+  const inter = [...a].filter(t => b.has(t)).length;
+  const union = new Set([...a, ...b]).size;
+  let score = union ? inter / union : 0;
+  if (brandA && brandB && brandA.toLowerCase().trim() === brandB.toLowerCase().trim()) score += 0.15;
+  return score;
+}
+function fuzzyCandidate(name, brand, excludeId){
+  let best = null, bestScore = 0;
+  S.items.forEach(it => {
+    if (it.id === excludeId) return;
+    const score = similarity(name, brand, it.name, it.brand);
+    if (score > bestScore){ bestScore = score; best = it; }
+  });
+  return bestScore >= 0.5 ? {item:best, score:bestScore} : null;
+}
+/* every unordered pair in the existing catalog, scored — instant, free, no network */
+function findDuplicatePairs(){
+  const pairs = [];
+  for (let i = 0; i < S.items.length; i++){
+    for (let j = i + 1; j < S.items.length; j++){
+      const a = S.items[i], b = S.items[j];
+      const score = similarity(a.name, a.brand, b.name, b.brand);
+      if (score >= 0.5) pairs.push({a, b, score, reason:null});
+    }
+  }
+  return pairs.sort((x,y) => y.score - x.score);
+}
+
+/* ---------- catalog-wide cleanup: nothing merges without an explicit tap ---------- */
+let dedupePairs = [];
+
+function openDedupe(){
+  dedupePairs = findDuplicatePairs();
+  renderDedupe();
+}
+
+function renderDedupe(){
+  sheet(`
+    <h2>ניקוי כפילויות</h2>
+    <p class="muted" id="ddCount" style="margin-bottom:10px"></p>
+    <div id="ddList"></div>
+    <button class="btn g" id="ddAi" style="margin-top:12px">🔎 בדוק גם עם AI (בדיקה עמוקה יותר)</button>
+    <button class="btn a" id="ddDone" style="margin-top:8px">סיום</button>
+  `, () => {
+    $('ddDone').onclick = closeSheet;
+    $('ddAi').onclick = runAiDedupe;
+    paintDedupeList();
+  });
+}
+
+function paintDedupeList(){
+  const list = $('ddList'), count = $('ddCount');
+  if (!list) return;
+  if (!dedupePairs.length){
+    count.textContent = 'לא נמצאו זוגות חשודים בבדיקה המקומית.';
+    list.innerHTML = '';
+    return;
+  }
+  count.textContent = `${dedupePairs.length} זוגות אפשריים — תבחר איזה שם נשאר, או שאלה אינם זהים.`;
+  list.innerHTML = dedupePairs.map((p,i) => `
+    <div class="group" style="margin-bottom:8px">
+      <div style="padding:10px 11px">
+        ${p.reason ? `<div class="muted" style="margin-bottom:6px">🤖 ${esc(p.reason)}</div>` : ''}
+        <div class="two">
+          <button class="btn g" data-keep="${i}:a" style="text-align:right;font-size:12.5px;padding:9px">
+            ✓ ${esc(p.a.name)}<br><span class="muted">${esc(p.a.brand||'')} · יש ${p.a.qty}</span>
+          </button>
+          <button class="btn g" data-keep="${i}:b" style="text-align:right;font-size:12.5px;padding:9px">
+            ✓ ${esc(p.b.name)}<br><span class="muted">${esc(p.b.brand||'')} · יש ${p.b.qty}</span>
+          </button>
+        </div>
+        <button class="btn" data-skip="${i}" style="margin-top:6px;background:transparent;color:var(--ink3);font-size:12px;padding:6px">אלה לא אותו מוצר</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('[data-keep]').forEach(btn => btn.onclick = () => {
+    const [idx, side] = btn.dataset.keep.split(':');
+    const p = dedupePairs[Number(idx)];
+    mergeDuplicates(side === 'a' ? p.a.id : p.b.id, side === 'a' ? p.b.id : p.a.id);
+  });
+  list.querySelectorAll('[data-skip]').forEach(btn => btn.onclick = () => {
+    dedupePairs.splice(Number(btn.dataset.skip), 1);
+    paintDedupeList();
+  });
+}
+
+function mergeDuplicates(keepId, dropId){
+  const keep = S.items.find(x => x.id === keepId);
+  const drop = S.items.find(x => x.id === dropId);
+  if (!keep || !drop){ // one side was already consumed by an earlier merge in this list
+    dedupePairs = dedupePairs.filter(p => p.a.id !== dropId && p.b.id !== dropId);
+    paintDedupeList();
+    return;
+  }
+  const addQty = Number(drop.qty) || 0;
+  keep.qty = (Number(keep.qty) || 0) + addQty;
+  logEvent('CORRECTION', keep.id, addQty, `מוזג עם "${drop.name}"`);
+  logEvent('DELETE', drop.id, -addQty, drop.name);
+  S.items = S.items.filter(x => x.id !== dropId);
+  // any other pending pair mentioning either item is now stale
+  dedupePairs = dedupePairs.filter(p => p.a.id !== dropId && p.b.id !== dropId);
+  save();
+  toast(`מוזג לתוך "${keep.name}"`);
+  paintDedupeList();
+}
+
+async function runAiDedupe(){
+  const btn = $('ddAi');
+  btn.innerHTML = '<span class="spin"></span> בודק…';
+  btn.disabled = true;
+  try {
+    const res = await fetch(AI_ENDPOINT, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        task: 'dedupe_catalog',
+        catalog: S.items.map(i => ({id:i.id, name:i.name, brand:i.brand||'', qty:i.qty}))
+      })
+    });
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `שגיאה ${res.status}`);
+    const data = await res.json();
+    const existing = new Set(dedupePairs.map(p => [p.a.id,p.b.id].sort().join('|')));
+    let added = 0;
+    (data.groups || []).forEach(g => {
+      const ids = g.ids.filter(id => S.items.some(x=>x.id===id));
+      for (let k = 1; k < ids.length; k++){
+        const key = [ids[0], ids[k]].sort().join('|');
+        if (existing.has(key)) continue;
+        const a = S.items.find(x=>x.id===ids[0]), b = S.items.find(x=>x.id===ids[k]);
+        if (!a || !b) continue;
+        existing.add(key);
+        dedupePairs.push({a, b, score:1, reason:g.reason||null});
+        added++;
+      }
+    });
+    btn.disabled = false; btn.innerHTML = '🔎 בדוק גם עם AI (בדיקה עמוקה יותר)';
+    toast(added ? `${added} זוגות נוספים נמצאו` : 'ה-AI לא מצא כפילויות נוספות');
+    paintDedupeList();
+  } catch(err){
+    btn.disabled = false; btn.innerHTML = '🔎 בדוק גם עם AI (בדיקה עמוקה יותר)';
+    toast('הבדיקה נכשלה: ' + err.message);
+  }
+}
+
+/* ---------- staging: nothing is saved until confirmed ---------- */
+function openStaging(rows){
+  if (!rows.length){
+    sheet(`<h2>לא זוהו מוצרים</h2>
+      <p class="muted" style="margin:8px 0 14px">נסה תאורה טובה יותר, או צלם מקרוב יותר את התוויות.</p>
+      <button class="btn a" id="again">צילום חוזר</button>
+      <button class="btn g" id="cls" style="margin-top:8px">סגירה</button>`,
+      () => { $('again').onclick = openScanner; $('cls').onclick = closeSheet; });
+    return;
+  }
+  const spOpts = S.spaces.map(s=>`<option value="${esc(s.id)}">${s.emoji} ${esc(s.name)}</option>`).join('');
+  const defSpace = UI.space === 'all' ? S.spaces[0].id : UI.space;
+
+  sheet(`
+    <h2>אימות סריקה</h2>
+    <p class="muted" style="margin-bottom:6px">
+      ${rows.length} פריטים זוהו. תקן כמויות, בטל מה שלא נכון, ורק אז אשר.
+    </p>
+    <div>${rows.map((r,i)=>{
+      const m = r.matchId ? S.items.find(x=>x.id===r.matchId) : null;
+      const fz = !m ? fuzzyCandidate(r.name, r.brand, null) : null;
+      return `<div class="srow" data-i="${i}">
+        <div class="row">
+          <label class="row grow" style="gap:7px">
+            <input type="checkbox" class="stKeep" checked style="width:18px;height:18px;flex:none">
+            <span class="grow trunc" style="font-weight:600;font-size:13.5px">${esc(r.name)}</span>
+          </label>
+          <span class="pill ${m?'upd':'new'}" data-pill>${m?'עדכון':'חדש'}</span>
+        </div>
+        ${fz ? `<div class="row" style="background:var(--warn-soft);border-radius:8px;padding:6px 8px;margin-top:6px;gap:6px" data-fzwarn>
+          <span style="font-size:12px;color:var(--warn)" class="grow">⚠ אולי כבר קיים: "${esc(fz.item.name)}" (יש ${fz.item.qty} בבית)</span>
+          <button type="button" class="chip on" data-fzaccept="${esc(fz.item.id)}" style="padding:4px 9px;font-size:11.5px">זה אותו מוצר</button>
+        </div>` : ''}
+        <div class="two">
+          <input class="stName" value="${esc(r.name)}" placeholder="שם">
+          <input class="stBrand" value="${esc(r.brand||'')}" placeholder="מותג">
+        </div>
+        <div class="two">
+          <input class="stQty" type="number" inputmode="numeric" min="0" value="${Number(r.qty)||1}" placeholder="כמות">
+          <select class="stCat">${S.cats.map(c=>
+            `<option value="${esc(c.id)}" ${c.id===(m?m.catId:r.catId)?'selected':''}>${c.emoji} ${esc(c.name)}</option>`).join('')}</select>
+        </div>
+        <input type="hidden" class="stMatch" value="${esc(r.matchId||'')}">
+      </div>`;
+    }).join('')}</div>
+
+    <div class="field" style="margin-top:14px"><label>שייך את החדשים לחלל</label>
+      <select id="stSpace">${spOpts}</select></div>
+    <button class="btn a" id="stApply">אישור והוספה למלאי</button>
+    <button class="btn g" id="stCancel" style="margin-top:8px">ביטול הכל</button>
+  `, () => {
+    $('stSpace').value = defSpace;
+    $('stCancel').onclick = closeSheet;
+    document.querySelectorAll('[data-fzaccept]').forEach(btn => btn.onclick = () => {
+      const row = btn.closest('.srow');
+      const matched = S.items.find(x => x.id === btn.dataset.fzaccept);
+      if (!matched) return;
+      row.querySelector('.stMatch').value = matched.id;
+      row.querySelector('.stCat').value = matched.catId;
+      const pill = row.querySelector('[data-pill]');
+      pill.textContent = 'עדכון'; pill.className = 'pill upd';
+      row.querySelector('[data-fzwarn]').remove();
+    });
+    $('stApply').onclick = () => {
+      const spaceId = $('stSpace').value;
+      let added = 0, updated = 0;
+      document.querySelectorAll('.srow').forEach(row => {
+        if (!row.querySelector('.stKeep').checked) return;
+        const name  = row.querySelector('.stName').value.trim();
+        if (!name) return;
+        const brand = row.querySelector('.stBrand').value.trim();
+        const qty   = Math.max(0, parseInt(row.querySelector('.stQty').value) || 0);
+        const catId = row.querySelector('.stCat').value;
+        const mid   = row.querySelector('.stMatch').value;
+        const ex    = mid ? S.items.find(x=>x.id===mid) : null;
+        if (ex){
+          const d = qty - (Number(ex.qty)||0);
+          ex.qty = qty; ex.brand = brand || ex.brand; ex.catId = catId;
+          logEvent('CORRECTION', ex.id, d, 'ספירה מסריקה');
+          updated++;
+        } else {
+          const n = {id:uid(), name, brand, spaceId, catId, qty, target:qty||1, note:'', createdAt:Date.now()};
+          S.items.push(n);
+          logEvent('SCAN', n.id, qty, 'נוסף מסריקה');
+          added++;
+        }
+      });
+      closeSheet(); save();
+      toast(`${added} נוספו · ${updated} עודכנו`);
+    };
+  });
+}
+
+function sheet(html, after){
+  $('modals').innerHTML = `<div class="overlay"><div class="sheet">${html}</div></div>`;
+  const ov = document.querySelector('.overlay');
+  ov.onclick = e => { if (e.target === ov) closeSheet(); };
+  if (after) after();
+}
+function closeSheet(){ stopCam(); $('modals').innerHTML = ''; }
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-q],[data-edit],[data-sp],[data-ct]');
+  if (!t) return;
+  if (t.dataset.q !== undefined){
+    const it = S.items.find(i=>i.id===t.dataset.q);
+    const d = Number(t.dataset.d);
+    const next = Math.max(0, (Number(it.qty)||0) + d);
+    if (next === it.qty) return;
+    it.qty = next;
+    logEvent(d > 0 ? 'PURCHASE' : 'USED', it.id, d, 'כפתור מהיר');
+    save();
+  } else if (t.dataset.edit !== undefined){ openItem(t.dataset.edit); }
+  else if (t.dataset.sp !== undefined){ UI.space = t.dataset.sp; UI.cat = 'all'; render(); }
+  else if (t.dataset.ct !== undefined){ UI.cat = t.dataset.ct; render(); }
+});
+
+$('q').oninput = e => { UI.q = e.target.value; renderStats(); renderView(); };
+$('fabAdd').onclick = () => openItem(null);
+$('fabScan').onclick = openScanner;
+$('btnShop').onclick = openShop;
+$('btnSettings').onclick = openSettings;
+$('vGrid').onclick = () => { UI.view='grid'; $('vGrid').classList.add('on'); $('vList').classList.remove('on'); renderView(); };
+$('vList').onclick = () => { UI.view='list'; $('vList').classList.add('on'); $('vGrid').classList.remove('on'); renderView(); };
+
+/* ---------- boot ---------- */
+load(); render(); initFirebase();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
