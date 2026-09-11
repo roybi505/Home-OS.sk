@@ -1,7 +1,10 @@
 # Current Sprint — Home OS 2.0.5 "Smart Interim"
 
 Branch: `claude/2-0-5-smart-interim-wcd3gg`
-Status: **In progress** (implementation underway — see status table below)
+PR: https://github.com/roybi505/Home-OS.sk/pull/2
+Issue: https://github.com/roybi505/Home-OS.sk/issues/1
+Status: **Implementation complete — in review** (see status table below;
+see `docs/AI_HANDOFF.md` for what still needs Codex/product sign-off)
 
 ## Authoritative scope (verbatim from the approved specification)
 
