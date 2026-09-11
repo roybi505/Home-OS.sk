@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Home OS</title>
-<meta name="theme-color" content="#1B1815">
+<meta name="theme-color" content="#18181B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Home OS">
@@ -17,18 +17,21 @@
      background / surface / elevated-surface / text-primary / text-secondary /
      accent / success / warning / danger — the reusable palette.
      --surface-2 doubles as "elevated surface" (stepper buttons, inputs-on-input). */
-  --bg:#1B1815;
-  --surface:#242019;      --card:#242019;      /* alias kept: many call sites still say --card */
-  --surface-2:#2E2A22;    --soft:#2E2A22;      /* alias kept: --soft == elevated surface */
-  --line:#3A342A; --line2:#2E2A22;
-  --text:#F3EDE3;   --ink:#F3EDE3;             /* text-primary  (alias: --ink) */
-  --text-2:#B8AC9A; --ink2:#B8AC9A;            /* text-secondary */
-  --text-3:#8A7F6E; --ink3:#8A7F6E;
-  --accent:#D9922E; --accent-ink:#241708; --accent-soft:#3A2E18;
-  --warning:#E8B34A; --warn:#E8B34A; --warn-soft:#3D3018;
-  --danger:#E2685B;  --danger-soft:#3D211C;
-  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#20332A;
-  --fab-bg:#2E2A22;
+  /* Quiet Home: neutral charcoal chrome, orange reserved for genuine
+     actionable moments (primary CTAs, active tab, real alerts) rather
+     than general interface surface — see docs/DECISIONS.md. */
+  --bg:#18181B;
+  --surface:#202024;      --card:#202024;      /* alias kept: many call sites still say --card */
+  --surface-2:#28282D;    --soft:#28282D;      /* alias kept: --soft == elevated surface */
+  --line:#343439; --line2:#28282D;
+  --text:#EDEDEF;   --ink:#EDEDEF;             /* text-primary  (alias: --ink) */
+  --text-2:#A5A5AD; --ink2:#A5A5AD;            /* text-secondary */
+  --text-3:#77777F; --ink3:#77777F;
+  --accent:#D9922E; --accent-ink:#241708; --accent-soft:#332B20;
+  --warning:#E8B34A; --warn:#E8B34A; --warn-soft:#332C1E;
+  --danger:#E2685B;  --danger-soft:#332221;
+  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#1E2B25;
+  --fab-bg:#28282D;
 
   /* spacing scale */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
@@ -57,8 +60,9 @@ select{appearance:none;background:var(--surface)}
 .hidden{display:none !important}
 .row{display:flex;align-items:center;gap:var(--sp-2)}
 .grow{flex:1;min-width:0}
-.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;unicode-bidi:plaintext}
 .muted{color:var(--text-3);font-size:12px}
+.bidi{unicode-bidi:plaintext}
 .icon{display:inline-flex;flex-shrink:0}
 .icon svg{display:block}
 .scroll-x{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
@@ -72,7 +76,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);
   width:36px;height:36px;border-radius:var(--rad-sm);display:flex;align-items:center;
   justify-content:center;background:var(--surface-2);flex-shrink:0;color:var(--text-2)
 }
-.iconbtn.on{background:var(--accent);color:var(--accent-ink)}
+.iconbtn.on{background:var(--accent-soft);color:var(--accent)}
 .home-badge{width:34px;height:34px;border-radius:var(--rad-sm);background:var(--accent);
   color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 
@@ -112,9 +116,9 @@ main{flex:1;overflow-y:auto;padding:var(--sp-4);padding-bottom:172px;-webkit-ove
 
 /* ---- big product/family cards (Supplies & Kitchen) ---- */
 .plist{display:flex;flex-direction:column;gap:var(--sp-2)}
-.pcard{background:var(--surface);border-radius:var(--rad-lg);box-shadow:var(--shadow);
+.pcard{background:var(--surface);border-radius:var(--rad-lg);border:1px solid var(--line2);
   padding:var(--sp-3) var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);position:relative}
-.pcard.out{background:#241713}
+.pcard.out{border-color:var(--danger-soft)}
 .pcard .swatch{width:44px;height:44px;border-radius:var(--rad-sm);display:flex;align-items:center;
   justify-content:center;flex-shrink:0;background:var(--surface-2);color:var(--text-2)}
 .pcard .info{flex:1;min-width:0}
@@ -127,11 +131,11 @@ main{flex:1;overflow-y:auto;padding:var(--sp-4);padding-bottom:172px;-webkit-ove
 .status-tag.ok{background:var(--ok-soft);color:var(--success)}
 .fam-badge{font-size:10.5px;color:var(--text-3);font-weight:600}
 
-.stepper{display:flex;align-items:center;background:var(--surface-2);border-radius:var(--rad-sm);padding:2px}
-.stepper button{width:28px;height:28px;border-radius:8px;background:var(--surface);
-  box-shadow:var(--shadow);font-size:15px;font-weight:600;color:var(--text-2)}
-.stepper button:active{transform:scale(.92)}
-.stepper .n{width:32px;text-align:center;font-weight:700;font-size:13px}
+.stepper{display:flex;align-items:center;gap:3px}
+.stepper button{width:26px;height:26px;border-radius:8px;background:transparent;
+  border:1px solid var(--line);font-size:14px;font-weight:600;color:var(--text-2)}
+.stepper button:active{transform:scale(.92);background:var(--surface-2)}
+.stepper .n{width:30px;text-align:center;font-weight:700;font-size:13px}
 .stepper .n.z{color:var(--danger)}
 
 /* zone tabs (Kitchen) */
@@ -275,7 +279,7 @@ details.adv[open] > summary::before{content:'▾ '}
 <div class="bottombar">
   <div class="askbar">
     <button class="iconbtn" id="askCam" title="סרוק ארון" style="background:none"></button>
-    <input id="askInput" type="text" placeholder="ספר ל-Home OS מה קרה…">
+    <input id="askInput" type="text" dir="auto" placeholder="ספר ל-Home OS מה קרה…">
     <button class="send" id="askSend" title="שלח"></button>
   </div>
   <div class="tabbar">
@@ -365,16 +369,30 @@ const CAT_ICON = {
 function catIcon(catId){ return CAT_ICON[catId] || 'box'; }
 
 let S = {
-  items:[], spaces:[], cats:[], extras:[], events:[],
+  items:[], spaces:[], cats:[], extras:[], events:[], dismissedInsights:{},
   meta:{ updatedAt:0, schemaVersion:0 }
 };
-const UI = { tab:'home', space:'all', cat:'all', view:'grid', q:'', zone:'all' };
+const UI = { tab:'home', space:'all', cat:'all', view:'grid', q:'', zone:'all', shopQ:'' };
 
 /* ---------- helpers ---------- */
 const $  = id => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* CSS text-overflow:ellipsis on a single line of mixed Hebrew/English text
+   is where the truncation actually reorders badly — the browser inserts
+   the ellipsis into the visual layout after bidi reordering has already
+   split a Latin word across the cut, which is exactly the "truncate and
+   reorder poorly" symptom. Truncating the STRING itself, in logical order,
+   before it ever reaches the DOM sidesteps that: the bidi algorithm then
+   only ever has to lay out an already-short, already-correct string. */
+function bidiTrunc(s, max){
+  s = String(s == null ? '' : s);
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max).replace(/\s+\S*$/, '');
+  return (cut || s.slice(0, max)) + '…';
+}
 
 let toastT;
 function toast(msg){
@@ -396,6 +414,8 @@ function migrateState(state){
   state.cats    = Array.isArray(state.cats)    ? state.cats    : [];
   state.extras  = Array.isArray(state.extras)  ? state.extras  : [];
   state.events  = Array.isArray(state.events)  ? state.events  : [];
+  state.dismissedInsights = (state.dismissedInsights && typeof state.dismissedInsights === 'object')
+    ? state.dismissedInsights : {};
   state.meta    = state.meta || {};
   if (!state.meta.schemaVersion) state.meta.schemaVersion = 0;
 
@@ -431,7 +451,7 @@ function load(){
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(LS_DATA) || 'null'); } catch(e){}
   if (raw && Array.isArray(raw.items)) {
-    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],meta:{updatedAt:0,schemaVersion:0}}, raw);
+    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],dismissedInsights:{},meta:{updatedAt:0,schemaVersion:0}}, raw);
   }
   S = migrateState(S);
   if (!S.spaces.length) S.spaces = DEFAULT_SPACES.map(x=>({...x}));
@@ -461,6 +481,55 @@ function shortages(pool){
     .sort((a,b)=> (a.item.qty - b.item.qty) || b.need - a.need);
 }
 function getShoppingNeeds(){ return shortages(); }
+
+/* ---------- deterministic event intelligence ----------
+   No AI involved: reads only S.items/S.events, both already-real recorded
+   facts. Every insight's "evidence" string states nothing beyond what was
+   actually counted, so it can never be a guess or an invented number.
+   Conservative on purpose: needs a real, recent pattern (several USED
+   events in the window) AND genuinely thin remaining stock, and skips
+   anything the deterministic shortages() list already flags or that the
+   user already added to the shopping list or dismissed recently. */
+const INSIGHT_WINDOW_MS = 14 * 24 * 3600 * 1000;
+const INSIGHT_MIN_USES = 3;
+const INSIGHT_MAX_QTY = 2;
+const INSIGHT_COOLDOWN_MS = 3 * 24 * 3600 * 1000;
+
+function computeInsights(){
+  const now = Date.now();
+  const cutoff = now - INSIGHT_WINDOW_MS;
+  const dismissed = S.dismissedInsights || {};
+  const alreadyExtra = new Set(S.extras.filter(e => e.itemId).map(e => e.itemId));
+
+  const insights = [];
+  S.items.forEach(it => {
+    const qty = Number(it.qty) || 0;
+    if (qty > INSIGHT_MAX_QTY) return;
+    if (qty < (Number(it.target) || 0)) return; // shortages() already covers this item
+    if (alreadyExtra.has(it.id)) return;
+
+    const uses = S.events.filter(e => e.itemId === it.id && e.type === 'USED' && e.ts >= cutoff);
+    if (uses.length < INSIGHT_MIN_USES) return;
+
+    const id = 'freq_' + it.id;
+    const lastDismissed = dismissed[id] || 0;
+    if (now - lastDismissed < INSIGHT_COOLDOWN_MS) return;
+
+    const days = Math.max(1, Math.round((now - cutoff) / 86400000));
+    insights.push({
+      id, itemId: it.id, type: 'frequent_use',
+      evidence: `נעשה בו שימוש ${uses.length} פעמים ב-${days} הימים האחרונים · נשארו ${qty}`
+    });
+  });
+  return insights.sort((a, b) => a.evidence.localeCompare(b.evidence));
+}
+
+function dismissInsight(id){
+  S.dismissedInsights = S.dismissedInsights || {};
+  S.dismissedInsights[id] = Date.now();
+  save(false);
+}
+
 function getNeedsAttention(){
   return S.items
     .filter(i => (Number(i.qty)||0) === 0 || (Number(i.qty)||0) < (Number(i.target)||0))
@@ -534,8 +603,8 @@ function pcardHTML(it){
   return `<div class="pcard ${q===0?'out':''}">
     ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<div class="swatch">${iconSvg(catIcon(it.catId),20)}</div>`}
     <div class="info" data-edit="${it.id}">
-      <div class="name trunc">${esc(it.name)}</div>
-      <div class="sub trunc">${esc(it.brand||catOf(it.catId).name)}</div>
+      <div class="name trunc">${esc(bidiTrunc(it.name,26))}</div>
+      <div class="sub trunc">${esc(bidiTrunc(it.brand||catOf(it.catId).name,26))}</div>
       ${tag}
     </div>
     ${stepperHTML(it)}
@@ -552,7 +621,7 @@ function familyCardHTML(fid, arr){
   return `<button class="pcard" data-fam="${esc(fid)}" style="text-align:right">
     <div class="swatch">${iconSvg(catIcon(arr[0].catId),20)}</div>
     <div class="info">
-      <div class="name trunc">${esc(name)}</div>
+      <div class="name trunc">${esc(bidiTrunc(name,26))}</div>
       <div class="sub trunc">${totalQty} יחידות · ${arr.length} גרסאות</div>
       ${tag}
     </div>
@@ -564,7 +633,7 @@ function openFamily(fid){
   if (!items.length) return;
   const name = items[0].familyName || items[0].name;
   sheet(`
-    <h2>${esc(name)}</h2>
+    <h2 class="bidi">${esc(name)}</h2>
     <p class="muted" style="margin-bottom:10px">${items.length} גרסאות · לשינוי שיוך משפחה, ערוך כל מוצר בנפרד</p>
     <div class="plist">${items.map(it=>pcardHTML(it)).join('')}</div>
     <button class="btn g" id="famClose" style="margin-top:14px">סגירה</button>
@@ -574,16 +643,46 @@ function openFamily(fid){
 /* ---------- render dispatch ---------- */
 const TAB_TITLES = { home:'Home OS', supplies:'מצרכים', kitchen:'מטבח', shopping:'קניות' };
 
+/* render() replaces #view's entire innerHTML, which — if left alone —
+   destroys and recreates whatever <input> the user is typing into on every
+   single keystroke (the "keyboard collapse" bug: a brand-new DOM node has
+   no focus, no selection, and drops the on-screen keyboard on mobile).
+   Snapshotting focus/selection before the replace and restoring it after
+   fixes every current and future text field inside #view without having
+   to move to a partial-DOM-patch renderer. */
 function render(){
   $('tabTitle').textContent = TAB_TITLES[UI.tab] || 'Home OS';
   document.querySelectorAll('.tabbar button[data-tab]').forEach(b =>
     b.classList.toggle('on', b.dataset.tab === UI.tab));
   const el = $('view');
+
+  const active = document.activeElement;
+  let focusState = null;
+  if (active && el.contains(active) && active.id){
+    focusState = {
+      id: active.id,
+      selStart: (typeof active.selectionStart === 'number') ? active.selectionStart : null,
+      selEnd:   (typeof active.selectionEnd === 'number') ? active.selectionEnd : null,
+      scrollTop: el.scrollTop
+    };
+  }
+
   if (UI.tab === 'supplies')      el.innerHTML = renderSupplies();
   else if (UI.tab === 'kitchen')  el.innerHTML = renderKitchen();
   else if (UI.tab === 'shopping') el.innerHTML = renderShoppingTab();
   else                            el.innerHTML = renderHome();
   wireTabExtras();
+
+  if (focusState){
+    const revived = $(focusState.id);
+    if (revived && (revived.tagName === 'INPUT' || revived.tagName === 'TEXTAREA')){
+      revived.focus({preventScroll:true});
+      if (focusState.selStart !== null){
+        try { revived.setSelectionRange(focusState.selStart, focusState.selEnd); } catch(e){}
+      }
+    }
+    el.scrollTop = focusState.scrollTop;
+  }
 }
 
 /* elements that live inside #view get replaced on every render(), so their
@@ -600,11 +699,11 @@ function wireTabExtras(){
       openItem(null, {inventoryMode:'kitchen', kitchenZone: UI.zone!=='all' ? UI.zone : 'pantry'});
   }
   if (UI.tab === 'shopping'){
-    if ($('shopNew')) $('shopNew').onkeydown = e => { if (e.key==='Enter') $('shopAdd').click(); };
-    if ($('shopAdd')) $('shopAdd').onclick = () => {
-      const t = $('shopNew').value.trim(); if(!t) return;
-      S.extras.push({id:uid(), text:t, got:false}); save(false); render();
-    };
+    if ($('shopNew')){
+      $('shopNew').oninput = e => { UI.shopQ = e.target.value; render(); };
+      $('shopNew').onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); commitShopAdd(); } };
+    }
+    if ($('shopAdd')) $('shopAdd').onclick = () => commitShopAdd();
     if ($('shopWa')) $('shopWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(shopText()), '_blank');
     if ($('shopCp')) $('shopCp').onclick = async () => {
       try { await navigator.clipboard.writeText(shopText()); toast('הועתק'); }
@@ -617,6 +716,15 @@ function wireTabExtras(){
         item.qty = (Number(item.qty)||0) + need;
         logEvent('PURCHASE', item.id, need, 'קנייה מהרשימה');
         delete item._got; n++;
+      });
+      S.extras.filter(e=>e.got).forEach(e=>{
+        if (!e.itemId) return;
+        const it = S.items.find(i=>i.id===e.itemId);
+        if (!it) return;
+        const qty = Math.max(1, Number(e.qty)||1);
+        it.qty = (Number(it.qty)||0) + qty;
+        logEvent('PURCHASE', it.id, qty, 'קנייה מרשימת קניות');
+        n++;
       });
       S.extras = S.extras.filter(e=>!e.got);
       save();
@@ -635,6 +743,7 @@ function renderHome(){
   const shopCount = getShoppingNeeds().length + S.extras.filter(e=>!e.got).length;
   const stat = householdStatus();
   const attention = getNeedsAttention().slice(0, 5);
+  const insights = computeInsights().slice(0, 2);
 
   return `
     <div class="hero row">
@@ -668,11 +777,35 @@ function renderHome(){
       </button>
     </div>
 
+    ${insights.length ? `
+      <div class="section-title">Home OS שם לב</div>
+      ${insights.map(ins => noticedCardHTML(ins)).join('')}
+    ` : ''}
+
     ${attention.length ? `
       <div class="section-title">צריך תשומת לב</div>
       ${attention.map(it => attnCardHTML(it)).join('')}
     ` : ''}
   `;
+}
+
+/* proactive suggestion cards on Home — same computeInsights() evidence as
+   Shopping's "Home OS מציע" section, just surfaced earlier and capped to
+   the top 2 so the dashboard stays calm rather than alarm-heavy */
+function noticedCardHTML(ins){
+  const it = S.items.find(i => i.id === ins.itemId);
+  if (!it) return '';
+  return `<div class="attn-card" style="align-items:flex-start">
+    <div class="ic" style="width:34px;height:34px;flex-shrink:0">${iconSvg('robot',16)}</div>
+    <div class="grow">
+      <div style="font-weight:600;font-size:13.5px" class="bidi">${esc(it.name)}</div>
+      <div class="muted bidi" style="margin-bottom:8px">${esc(ins.evidence)}</div>
+      <div class="row" style="gap:8px">
+        <button class="chip on" data-insight-accept="${esc(ins.id)}" style="padding:5px 12px">הוסף לרשימה</button>
+        <button class="chip" data-insight-dismiss="${esc(ins.id)}" style="padding:5px 12px">התעלם</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function attnCardHTML(it){
@@ -681,7 +814,7 @@ function attnCardHTML(it){
     <span class="dot-status" style="background:${isOut?'var(--danger)':'var(--warning)'}"></span>
     <div class="ic" style="width:34px;height:34px">${iconSvg(catIcon(it.catId),16)}</div>
     <div class="grow">
-      <div style="font-weight:600;font-size:13.5px">${esc(it.name)}</div>
+      <div style="font-weight:600;font-size:13.5px" class="bidi">${esc(it.name)}</div>
       <div class="muted">${isOut?'אזל':'נמוך'} · יש ${q}</div>
     </div>
   </div>`;
@@ -724,7 +857,7 @@ function renderSupplies(){
       <button class="iconbtn on" id="openAddSupply">${iconSvg('plus',15)}</button>
     </div>
     <div class="search" style="margin-bottom:10px">
-      <input id="supQ" placeholder="חיפוש מוצר או מותג…" value="${esc(UI.q)}">
+      <input id="supQ" dir="auto" placeholder="חיפוש מוצר או מותג…" value="${esc(UI.q)}">
       <span>${iconSvg('search',14)}</span>
     </div>
     <div class="scroll-x" style="margin-bottom:12px">${spaceChips}</div>
@@ -749,7 +882,7 @@ function renderKitchen(){
 
   return `
     <div class="search" style="margin-bottom:10px">
-      <input id="kitQ" placeholder="חיפוש…" value="${esc(UI.q)}">
+      <input id="kitQ" dir="auto" placeholder="חיפוש…" value="${esc(UI.q)}">
       <span>${iconSvg('search',14)}</span>
     </div>
     <div class="zonebar">
@@ -774,7 +907,7 @@ function kitchenCardHTML(it){
   return `<button class="pcard" data-kitchen-item="${it.id}" style="text-align:right">
     ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<div class="swatch">${iconSvg(catIcon(it.catId),20)}</div>`}
     <div class="info">
-      <div class="name trunc">${esc(it.name)}</div>
+      <div class="name trunc">${esc(bidiTrunc(it.name,26))}</div>
       <div class="sub trunc">${q} יחידות</div>
       ${tag}
     </div>
@@ -785,8 +918,8 @@ function openKitchenActions(id){
   const it = S.items.find(i=>i.id===id);
   if (!it) return;
   sheet(`
-    <h2>${esc(it.name)}</h2>
-    <p class="muted" style="margin-bottom:14px">${esc(it.brand||'')}${it.brand?' · ':''}יש ${Number(it.qty)||0} יחידות</p>
+    <h2 class="bidi">${esc(it.name)}</h2>
+    <p class="muted bidi" style="margin-bottom:14px">${esc(it.brand||'')}${it.brand?' · ':''}יש ${Number(it.qty)||0} יחידות</p>
     <button class="btn a" id="kaUse">השתמשתי באחד</button>
     <button class="btn g" id="kaAdd" style="margin-top:8px">הוספת מלאי</button>
     <button class="btn g" id="kaEdit" style="margin-top:8px">עריכה</button>
@@ -838,6 +971,7 @@ function renderShoppingTab(){
   const outNow  = supplyNeeds.filter(n => Number(n.item.qty) === 0);
   const lowSoon = supplyNeeds.filter(n => Number(n.item.qty) > 0);
   const extras = S.extras;
+  const insights = computeInsights();
   const empty = !needs.length && !extras.length;
 
   function bucket(title, list){
@@ -848,21 +982,64 @@ function renderShoppingTab(){
     </div>`;
   }
 
+  const matches = shoppingMatches(UI.shopQ);
+  const suggestHTML = UI.shopQ.trim() ? `<div class="group" id="shopSuggest" style="margin-bottom:12px">
+    ${matches.length ? matches.map(it => `
+      <div class="shop-item" data-shopsuggest="${esc(it.id)}" style="cursor:pointer">
+        <div class="ic" style="width:28px;height:28px;flex-shrink:0">${iconSvg(catIcon(it.catId),14)}</div>
+        <div class="grow">
+          <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(it.name,40))}</div>
+          <div class="muted bidi">${esc(bidiTrunc(it.brand||'',40))}${it.brand?' · ':''}יש ${Number(it.qty)||0}</div>
+        </div>
+        <span class="need" style="background:var(--ok-soft);color:var(--success)">הוסף</span>
+      </div>`).join('')
+      : `<div class="shop-item"><div class="muted grow">אין מוצר קיים תואם — הקשה על + להוספה כפריט חדש</div></div>`}
+  </div>` : '';
+
+  const smartHTML = insights.length ? `<div class="shop-bucket">
+    <div class="section-title">Home OS מציע</div>
+    <div class="group">${insights.map(ins => {
+      const it = S.items.find(i => i.id === ins.itemId);
+      if (!it) return '';
+      return `<div class="shop-item" style="align-items:flex-start">
+        <div class="ic" style="width:28px;height:28px;flex-shrink:0">${iconSvg('robot',14)}</div>
+        <div class="grow">
+          <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(it.name,40))}</div>
+          <div class="muted bidi">${esc(ins.evidence)}</div>
+        </div>
+        <div class="row" style="gap:6px;flex-shrink:0">
+          <button class="chip on" data-insight-accept="${esc(ins.id)}" style="padding:4px 10px;font-size:11.5px">הוסף</button>
+          <button class="chip" data-insight-dismiss="${esc(ins.id)}" style="padding:4px 10px;font-size:11.5px">התעלם</button>
+        </div>
+      </div>`;
+    }).join('')}</div>
+  </div>` : '';
+
   const extrasHTML = extras.length ? `<div class="shop-bucket">
-    <div class="section-title">נוסף ידנית</div>
-    <div class="group">${extras.map(e=>`
+    <div class="section-title">נוסף לרשימה</div>
+    <div class="group">${extras.map(e=>{
+      const linked = e.itemId ? S.items.find(i=>i.id===e.itemId) : null;
+      const label = linked ? linked.name : e.text;
+      const sub = linked ? (linked.brand || '') : '';
+      return `
       <div class="shop-item">
         <div class="tick ${e.got?'on':''}" data-xgot="${e.id}">✓</div>
-        <div class="grow trunc" style="font-weight:600;font-size:13.5px;${e.got?'opacity:.45;text-decoration:line-through':''}">${esc(e.text)}</div>
+        <div class="grow" style="${e.got?'opacity:.45;text-decoration:line-through':''}">
+          <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(label,40))}</div>
+          ${sub ? `<div class="muted bidi">${esc(bidiTrunc(sub,40))}</div>` : ''}
+        </div>
         <button class="iconbtn" style="width:26px;height:26px;background:transparent" data-xdel="${e.id}">✕</button>
-      </div>`).join('')}</div>
+      </div>`;
+    }).join('')}</div>
   </div>` : '';
 
   return `
-    <div class="row" style="margin-bottom:12px">
-      <input id="shopNew" class="grow" placeholder="הוסף פריט חופשי…">
+    <div class="row" style="margin-bottom:10px">
+      <input id="shopNew" class="grow" dir="auto" autocomplete="off" placeholder="חפש מוצר קיים או הוסף פריט חדש…" value="${esc(UI.shopQ)}">
       <button class="iconbtn on" id="shopAdd">${iconSvg('plus',16)}</button>
     </div>
+    ${suggestHTML}
+    ${smartHTML}
     ${empty ? `<div class="empty"><div class="icon" style="justify-content:center">${iconSvg('check',34)}</div><div>אין מה לקנות</div></div>` : ''}
     ${bucket('השבוע', kitchenNeeds)}
     ${bucket('בקרוב', outNow)}
@@ -881,8 +1058,8 @@ function shopItemHTML(n){
   return `<div class="shop-item">
     <div class="tick ${item._got?'on':''}" data-need="${item.id}">✓</div>
     <div class="grow" style="${item._got?'opacity:.45;text-decoration:line-through':''}">
-      <div class="trunc" style="font-weight:600;font-size:13.5px">${esc(item.name)}</div>
-      <div class="muted trunc">${esc(item.brand||'')}${item.note?' · '+esc(item.note):''}</div>
+      <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(item.name,40))}</div>
+      <div class="muted bidi">${esc(bidiTrunc(item.brand||'',40))}${item.note?' · '+esc(bidiTrunc(item.note,40)):''}</div>
     </div>
     <span class="need">×${n.need}</span>
   </div>`;
@@ -901,8 +1078,58 @@ function shopText(){
     });
   });
   const ex = S.extras.filter(e=>!e.got);
-  if (ex.length){ t += `\nנוסף ידנית\n`; ex.forEach(e=> t += `• ${e.text}\n`); }
+  if (ex.length){
+    t += `\nנוסף לרשימה\n`;
+    ex.forEach(e => {
+      const it = e.itemId ? S.items.find(i=>i.id===e.itemId) : null;
+      t += `• ${it ? it.name : e.text}\n`;
+    });
+  }
   return t.trim() || 'הרשימה ריקה';
+}
+
+/* ---------- Shopping Smart Add ----------
+   Typing into the shopping field searches the household's own catalog
+   first — tapping a match adds a reference to that real item (so its
+   brand/stock stay attached) instead of a disconnected line of text.
+   Only when nothing in the catalog matches does it fall back to a plain
+   manual entry, exactly per the release priority: existing items before
+   manual extras. */
+function shoppingMatches(q){
+  q = (q || '').trim().toLowerCase();
+  if (!q) return [];
+  const alreadyListed = new Set([
+    ...getShoppingNeeds().map(n => n.item.id),
+    ...S.extras.filter(e => e.itemId).map(e => e.itemId)
+  ]);
+  return S.items
+    .filter(it => !alreadyListed.has(it.id))
+    .filter(it => (it.name||'').toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q))
+    .slice(0, 5);
+}
+
+function addShoppingItemRef(itemId){
+  const it = S.items.find(i => i.id === itemId);
+  if (!it) return;
+  const alreadyShort = getShoppingNeeds().some(n => n.item.id === itemId);
+  const alreadyExtra = S.extras.some(e => e.itemId === itemId);
+  if (alreadyShort || alreadyExtra){ toast('כבר ברשימת הקניות'); return; }
+  S.extras.push({id:uid(), itemId, text:it.name, got:false, qty:1});
+  save(false);
+  toast(`"${it.name}" נוסף לרשימה`);
+}
+
+function commitShopAdd(pickedItemId){
+  if (pickedItemId){ addShoppingItemRef(pickedItemId); UI.shopQ = ''; render(); return; }
+  const text = (UI.shopQ || '').trim();
+  if (!text) return;
+  const q = text.toLowerCase();
+  const exact = S.items.find(it =>
+    (it.name||'').toLowerCase() === q || (it.brand && `${it.brand} ${it.name}`.toLowerCase() === q));
+  if (exact){ addShoppingItemRef(exact.id); }
+  else { S.extras.push({id:uid(), text, got:false}); save(false); }
+  UI.shopQ = '';
+  render();
 }
 
 /* ---------- item CRUD ---------- */
@@ -947,11 +1174,11 @@ function openItem(id, defaults){
     <input type="file" accept="image/*" capture="environment" id="fPhotoCam" class="hidden">
     <input type="file" accept="image/*" id="fPhotoGal" class="hidden">
 
-    <div class="field"><label>שם המוצר *</label><input id="fName" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
-    <div class="field"><label>מותג</label><input id="fBrand" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
+    <div class="field"><label>שם המוצר *</label><input id="fName" dir="auto" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
+    <div class="field"><label>מותג</label><input id="fBrand" dir="auto" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
     <div class="field">
       <label>משפחת מוצר (רשות)</label>
-      <input id="fFamily" list="famList" value="${it?esc(it.familyName||''):''}" placeholder="למשל: AXE דאודורנט">
+      <input id="fFamily" dir="auto" list="famList" value="${it?esc(it.familyName||''):''}" placeholder="למשל: AXE דאודורנט">
       <datalist id="famList">${famNames.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
       <div class="muted" id="famHint" style="margin-top:4px"></div>
     </div>
@@ -963,7 +1190,7 @@ function openItem(id, defaults){
       <div class="field"><label>כמות נוכחית</label><input id="fQty" type="number" inputmode="numeric" min="0" value="${it?(Number(it.qty)||0):1}"></div>
       <div class="field"><label>כמות יעד</label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${it?(Number(it.target)||1):1}"></div>
     </div>
-    <div class="field"><label>הערה</label><input id="fNote" value="${it?esc(it.note||''):''}" placeholder="גודל, חנות מועדפת, מחיר…"></div>
+    <div class="field"><label>הערה</label><input id="fNote" dir="auto" value="${it?esc(it.note||''):''}" placeholder="גודל, חנות מועדפת, מחיר…"></div>
     <button class="btn a" id="fSave" style="margin-top:4px">שמירה</button>
     ${it?`<button class="btn r" id="fDel" style="margin-top:8px">מחיקת המוצר</button>`:''}
     <button class="btn g" id="fCancel" style="margin-top:8px">ביטול</button>
@@ -1727,8 +1954,8 @@ function openStaging(rows){
           <button type="button" class="chip on" data-fzaccept="${esc(fz.item.id)}" style="padding:4px 9px;font-size:11.5px">זה אותו מוצר</button>
         </div>` : ''}
         <div class="two">
-          <input class="stName" value="${esc(r.name)}" placeholder="שם">
-          <input class="stBrand" value="${esc(r.brand||'')}" placeholder="מותג">
+          <input class="stName" dir="auto" value="${esc(r.name)}" placeholder="שם">
+          <input class="stBrand" dir="auto" value="${esc(r.brand||'')}" placeholder="מותג">
         </div>
         <div class="two">
           <input class="stQty" type="number" inputmode="numeric" min="0" value="${Number(r.qty)||1}" placeholder="כמות">
@@ -1810,7 +2037,20 @@ function parseCommandPrompt(text, catalog, cats){
     '- "תוסיף קפה לרשימת הקניות"        -> add_shopping_extra',
     '- "יש לי עוד שני שמפו"              -> increase_qty, qty 2',
     '',
-    'For each operation:',
+    'Also recognize READ-ONLY QUESTIONS — the user is asking, not commanding:',
+    '- "כמה שמפו יש לי"              -> intent "query", query.type "count", query.itemName "שמפו"',
+    '- "מה חסר?" / "מה צריך לקנות"   -> intent "query", query.type "shopping_list"',
+    '- "מה דורש תשומת לב"            -> intent "query", query.type "low_stock"',
+    '- "מה יש במקרר/במזווה/במקפיא"   -> intent "query", query.type "zone",',
+    '  query.zone "fridge"/"pantry"/"freezer" respectively',
+    '',
+    'For a question like these, return intent "query", an EMPTY operations array,',
+    'and fill in "query". You NEVER answer the question yourself with a number or a',
+    'fact — you only classify which question it is; the app looks up the real answer',
+    'from its own local data. If a sentence is neither a clear command nor a',
+    'recognizable question type, use intent "unknown" with empty operations and no query.',
+    '',
+    'For each operation (when the sentence is a command, not a question):',
     '- If the product clearly matches something in the existing catalog below, set',
     '  "itemId" to that id and "name" to that item\'s exact existing name.',
     '- If it does not match anything existing AND the user clearly means to add it as',
@@ -1845,10 +2085,14 @@ const PARSE_SCHEMA = {
       action:{type:'STRING'}, itemId:{type:'STRING'}, name:{type:'STRING'},
       qty:{type:'INTEGER'}, inventoryMode:{type:'STRING'}, kitchenZone:{type:'STRING'},
       confidence:{type:'NUMBER'}
-    }, required:['action','name','qty'] } }
+    }, required:['action','name','qty'] } },
+    query:{ type:'OBJECT', properties:{
+      type:{type:'STRING'}, itemName:{type:'STRING'}, zone:{type:'STRING'}
+    } }
   },
   required:['intent','message','operations']
 };
+const QUERY_TYPES = ['count','low_stock','shopping_list','zone','unknown'];
 
 function sanitizeParseResult(parsed, catalog){
   const validIds = new Set(catalog.map(i=>i.id));
@@ -1861,7 +2105,13 @@ function sanitizeParseResult(parsed, catalog){
     kitchenZone: ['fridge','pantry','freezer'].includes(o.kitchenZone) ? o.kitchenZone : '',
     confidence: Math.max(0, Math.min(1, Number(o.confidence)||0))
   })).filter(o => o.action && o.name);
-  return { intent:String(parsed.intent||'unknown').slice(0,40), message:String(parsed.message||'').slice(0,200), operations:ops };
+  const rawQuery = parsed.query && typeof parsed.query === 'object' ? parsed.query : null;
+  const query = rawQuery ? {
+    type: QUERY_TYPES.includes(rawQuery.type) ? rawQuery.type : 'unknown',
+    itemName: String(rawQuery.itemName||'').trim().slice(0,80),
+    zone: ['fridge','pantry','freezer'].includes(rawQuery.zone) ? rawQuery.zone : ''
+  } : null;
+  return { intent:String(parsed.intent||'unknown').slice(0,40), message:String(parsed.message||'').slice(0,200), operations:ops, query };
 }
 
 async function parseCommandDirect(text, catalog, cats, key){
@@ -1890,10 +2140,59 @@ async function submitAsk(){
       if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `שגיאה ${res.status}`);
       result = await res.json();
     }
-    openAskConfirm(result);
+    if (result.intent === 'query'){
+      openAskAnswer(answerQuery(result.query), result.message);
+    } else {
+      openAskConfirm(result);
+    }
   } catch(err){
     toast('לא הצלחתי להבין: ' + err.message);
   }
+}
+
+/* ---------- read-only queries ----------
+   The model only classifies WHICH question this is (query.type/itemName/
+   zone) — it never states a number or a fact itself. Every answer here is
+   composed from S directly, so "how much X" always reflects real stock,
+   never a model guess. */
+function answerQuery(q){
+  q = q || {};
+  const type = q.type || 'unknown';
+  const itemName = (q.itemName || '').trim();
+
+  if (type === 'count'){
+    if (!itemName) return 'לא ציינת איזה מוצר.';
+    const low = itemName.toLowerCase();
+    const hit = S.items.find(it => (it.name||'').toLowerCase().includes(low) || (it.brand||'').toLowerCase().includes(low))
+      || (fuzzyCandidate(itemName, '', null) || {}).item;
+    if (!hit) return `לא מצאתי מוצר בשם "${itemName}" במלאי.`;
+    return `יש לך ${Number(hit.qty)||0} ${hit.name}${hit.brand?' ('+hit.brand+')':''} במלאי.`;
+  }
+
+  if (type === 'low_stock'){
+    const list = getNeedsAttention();
+    if (!list.length) return 'הכל תקין — שום דבר לא דורש תשומת לב כרגע.';
+    return 'דורשים תשומת לב: ' + list.slice(0,8).map(it => `${it.name} (יש ${Number(it.qty)||0})`).join(', ');
+  }
+
+  if (type === 'shopping_list') return shopText();
+
+  if (type === 'zone' && ZONES.includes(q.zone)){
+    const items = getKitchenItemsByZone(q.zone);
+    if (!items.length) return `אין פריטים רשומים ב${ZONE_LABEL[q.zone]}.`;
+    return `ב${ZONE_LABEL[q.zone]}: ` + items.map(it => `${it.name} (${Number(it.qty)||0})`).join(', ');
+  }
+
+  return 'לא הצלחתי לזהות שאלה על המלאי. נסה לנסח אחרת.';
+}
+
+function openAskAnswer(answer, message){
+  sheet(`
+    <h2>תשובה</h2>
+    ${message ? `<p class="muted bidi" style="margin-bottom:8px">${esc(message)}</p>` : ''}
+    <p class="bidi" style="white-space:pre-wrap">${esc(answer)}</p>
+    <button class="btn a" id="ansClose" style="margin-top:14px">סגירה</button>
+  `, () => { $('ansClose').onclick = closeSheet; });
 }
 
 function opLabel(action){
@@ -1996,7 +2295,8 @@ function closeSheet(){ stopCam(); $('modals').innerHTML = ''; }
 document.addEventListener('click', e => {
   const t = e.target.closest(
     '[data-q],[data-edit],[data-sp],[data-ct],[data-tab],[data-zone],' +
-    '[data-fam],[data-kitchen-item],[data-need],[data-xgot],[data-xdel]'
+    '[data-fam],[data-kitchen-item],[data-need],[data-xgot],[data-xdel],' +
+    '[data-shopsuggest],[data-insight-accept],[data-insight-dismiss]'
   );
   if (!t) return;
   if (t.dataset.q !== undefined){
@@ -2008,7 +2308,7 @@ document.addEventListener('click', e => {
     logEvent(d > 0 ? 'PURCHASE' : 'USED', it.id, d, 'כפתור מהיר');
     save();
   } else if (t.dataset.edit !== undefined){ openItem(t.dataset.edit); }
-  else if (t.dataset.tab !== undefined){ UI.tab = t.dataset.tab; UI.q = ''; render(); }
+  else if (t.dataset.tab !== undefined){ UI.tab = t.dataset.tab; UI.q = ''; UI.shopQ = ''; render(); }
   else if (t.dataset.zone !== undefined){ UI.zone = t.dataset.zone; render(); }
   else if (t.dataset.fam !== undefined){ openFamily(t.dataset.fam); }
   else if (t.dataset.kitchenItem !== undefined){ openKitchenActions(t.dataset.kitchenItem); }
@@ -2023,6 +2323,12 @@ document.addEventListener('click', e => {
   else if (t.dataset.xdel !== undefined){
     S.extras = S.extras.filter(x=>x.id!==t.dataset.xdel); save(false);
   }
+  else if (t.dataset.shopsuggest !== undefined){ commitShopAdd(t.dataset.shopsuggest); }
+  else if (t.dataset.insightAccept !== undefined){
+    const ins = computeInsights().find(i=>i.id===t.dataset.insightAccept);
+    if (ins) addShoppingItemRef(ins.itemId);
+  }
+  else if (t.dataset.insightDismiss !== undefined){ dismissInsight(t.dataset.insightDismiss); }
 });
 
 /* static chrome (header, ask bar, tab bar) is never replaced by render(),

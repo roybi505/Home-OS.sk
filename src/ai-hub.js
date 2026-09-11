@@ -291,7 +291,20 @@ async function parseCommand(body, key, model){
     '- "תוסיף קפה לרשימת הקניות"        -> add_shopping_extra',
     '- "יש לי עוד שני שמפו"              -> increase_qty, qty 2',
     '',
-    'For each operation:',
+    'Also recognize READ-ONLY QUESTIONS — the user is asking, not commanding:',
+    '- "כמה שמפו יש לי"              -> intent "query", query.type "count", query.itemName "שמפו"',
+    '- "מה חסר?" / "מה צריך לקנות"   -> intent "query", query.type "shopping_list"',
+    '- "מה דורש תשומת לב"            -> intent "query", query.type "low_stock"',
+    '- "מה יש במקרר/במזווה/במקפיא"   -> intent "query", query.type "zone",',
+    '  query.zone "fridge"/"pantry"/"freezer" respectively',
+    '',
+    'For a question like these, return intent "query", an EMPTY operations array,',
+    'and fill in "query". You NEVER answer the question yourself with a number or a',
+    'fact — you only classify which question it is; the app looks up the real answer',
+    'from its own local data. If a sentence is neither a clear command nor a',
+    'recognizable question type, use intent "unknown" with empty operations and no query.',
+    '',
+    'For each operation (when the sentence is a command, not a question):',
     '- If the product clearly matches something in the existing catalog below, set',
     '  "itemId" to that id and "name" to that item\'s exact existing name.',
     '- If it does not match anything existing AND the user clearly means to add it as',
@@ -343,6 +356,14 @@ async function parseCommand(body, key, model){
               },
               required: ['action', 'name', 'qty']
             }
+          },
+          query: {
+            type: 'OBJECT',
+            properties: {
+              type:     { type: 'STRING' },
+              itemName: { type: 'STRING' },
+              zone:     { type: 'STRING' }
+            }
           }
         },
         required: ['intent', 'message', 'operations']
@@ -387,10 +408,19 @@ async function parseCommand(body, key, model){
     confidence:    Math.max(0, Math.min(1, Number(o.confidence) || 0))
   })).filter(o => o.action && o.name);
 
+  const QUERY_TYPES = ['count', 'low_stock', 'shopping_list', 'zone', 'unknown'];
+  const rawQuery = parsed.query && typeof parsed.query === 'object' ? parsed.query : null;
+  const query = rawQuery ? {
+    type:     QUERY_TYPES.includes(rawQuery.type) ? rawQuery.type : 'unknown',
+    itemName: String(rawQuery.itemName || '').trim().slice(0, 80),
+    zone:     ['fridge', 'pantry', 'freezer'].includes(rawQuery.zone) ? rawQuery.zone : ''
+  } : null;
+
   return json({
     intent: String(parsed.intent || 'unknown').slice(0, 40),
     message: String(parsed.message || '').slice(0, 200),
-    operations
+    operations,
+    query
   });
 }
 
