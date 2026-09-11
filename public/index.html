@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Home OS</title>
+<meta name="theme-color" content="#1B1815">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Home OS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+
+<style>
+:root{
+  /* ---- design tokens ----
+     background / surface / elevated-surface / text-primary / text-secondary /
+     accent / success / warning / danger — the reusable palette.
+     --surface-2 doubles as "elevated surface" (stepper buttons, inputs-on-input). */
+  --bg:#1B1815;
+  --surface:#242019;      --card:#242019;      /* alias kept: many call sites still say --card */
+  --surface-2:#2E2A22;    --soft:#2E2A22;      /* alias kept: --soft == elevated surface */
+  --line:#3A342A; --line2:#2E2A22;
+  --text:#F3EDE3;   --ink:#F3EDE3;             /* text-primary  (alias: --ink) */
+  --text-2:#B8AC9A; --ink2:#B8AC9A;            /* text-secondary */
+  --text-3:#8A7F6E; --ink3:#8A7F6E;
+  --accent:#D9922E; --accent-ink:#241708; --accent-soft:#3A2E18;
+  --warning:#E8B34A; --warn:#E8B34A; --warn-soft:#3D3018;
+  --danger:#E2685B;  --danger-soft:#3D211C;
+  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#20332A;
+  --fab-bg:#2E2A22;
+
+  /* spacing scale */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  /* radii scale */
+  --rad-sm:10px; --rad-md:16px; --rad-lg:22px; --rad-full:999px;
+  --r:var(--rad-md);
+
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.24);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.38);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:"Rubik","Assistant","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--text); font-size:15px; line-height:1.45;
+  display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+input,select,textarea{
+  width:100%; background:var(--surface); border:1px solid var(--line); border-radius:var(--rad-sm);
+  padding:10px 12px; outline:none;
+}
+input:focus,select,textarea:focus{border-color:var(--accent)}
+select{appearance:none;background:var(--surface)}
+.hidden{display:none !important}
+.row{display:flex;align-items:center;gap:var(--sp-2)}
+.grow{flex:1;min-width:0}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muted{color:var(--text-3);font-size:12px}
+.icon{display:inline-flex;flex-shrink:0}
+.icon svg{display:block}
+.scroll-x{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.scroll-x::-webkit-scrollbar{display:none}
+
+/* header — simplified: brand + sync state + settings only */
+header{background:var(--surface);border-bottom:1px solid var(--line);
+  padding:var(--sp-3) var(--sp-4);flex-shrink:0}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.2px}
+.iconbtn{
+  width:36px;height:36px;border-radius:var(--rad-sm);display:flex;align-items:center;
+  justify-content:center;background:var(--surface-2);flex-shrink:0;color:var(--text-2)
+}
+.iconbtn.on{background:var(--accent);color:var(--accent-ink)}
+.home-badge{width:34px;height:34px;border-radius:var(--rad-sm);background:var(--accent);
+  color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+/* generic filter chip — used sparingly now (inside Supplies/Kitchen only) */
+.chip{
+  display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--rad-full);
+  font-size:12.5px;font-weight:600;white-space:nowrap;
+  background:var(--surface);border:1px solid var(--line);color:var(--text-2);flex-shrink:0
+}
+.chip.on{background:var(--surface-2);color:var(--text);border-color:var(--text-3)}
+.search{position:relative}
+.search input{padding-right:36px;background:var(--surface-2);border-color:transparent}
+.search span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+
+main{flex:1;overflow-y:auto;padding:var(--sp-4);padding-bottom:172px;-webkit-overflow-scrolling:touch}
+.section-title{font-size:13px;font-weight:700;color:var(--text-2);
+  text-transform:uppercase;letter-spacing:.03em;margin:var(--sp-5) 0 var(--sp-2)}
+.section-title:first-child{margin-top:0}
+
+/* ---- Home dashboard ---- */
+.hero{background:var(--surface);border-radius:var(--rad-lg);padding:var(--sp-5);
+  box-shadow:var(--shadow);margin-bottom:var(--sp-4)}
+.hero-ring{width:64px;height:64px;border-radius:50%;flex-shrink:0}
+.hero-title{font-size:14.5px;color:var(--text-2);margin-bottom:2px}
+.hero-value{font-size:26px;font-weight:700}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-bottom:var(--sp-2)}
+.dash-card{background:var(--surface);border-radius:var(--rad-lg);padding:var(--sp-4);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:var(--sp-2);min-height:104px}
+.dash-card:active{transform:scale(.98)}
+.dash-card .ic{width:38px;height:38px;border-radius:var(--rad-sm);display:flex;
+  align-items:center;justify-content:center;background:var(--surface-2)}
+.dash-card .lbl{font-size:14px;font-weight:700}
+.dash-card .sub{font-size:12.5px;color:var(--text-2)}
+.attn-card{background:var(--surface);border-radius:var(--rad-md);padding:var(--sp-3) var(--sp-4);
+  box-shadow:var(--shadow);display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-2)}
+.attn-card .dot-status{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ---- big product/family cards (Supplies & Kitchen) ---- */
+.plist{display:flex;flex-direction:column;gap:var(--sp-2)}
+.pcard{background:var(--surface);border-radius:var(--rad-lg);box-shadow:var(--shadow);
+  padding:var(--sp-3) var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);position:relative}
+.pcard.out{background:#241713}
+.pcard .swatch{width:44px;height:44px;border-radius:var(--rad-sm);display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;background:var(--surface-2);color:var(--text-2)}
+.pcard .info{flex:1;min-width:0}
+.pcard .name{font-weight:600;font-size:14.5px}
+.pcard .sub{font-size:12.5px;color:var(--text-2);margin-top:1px}
+.pcard .status-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--rad-full);
+  display:inline-block;margin-top:4px}
+.status-tag.low{background:var(--warn-soft);color:var(--warning)}
+.status-tag.out{background:var(--danger-soft);color:var(--danger)}
+.status-tag.ok{background:var(--ok-soft);color:var(--success)}
+.fam-badge{font-size:10.5px;color:var(--text-3);font-weight:600}
+
+.stepper{display:flex;align-items:center;background:var(--surface-2);border-radius:var(--rad-sm);padding:2px}
+.stepper button{width:28px;height:28px;border-radius:8px;background:var(--surface);
+  box-shadow:var(--shadow);font-size:15px;font-weight:600;color:var(--text-2)}
+.stepper button:active{transform:scale(.92)}
+.stepper .n{width:32px;text-align:center;font-weight:700;font-size:13px}
+.stepper .n.z{color:var(--danger)}
+
+/* zone tabs (Kitchen) */
+.zonebar{display:flex;gap:var(--sp-2);margin-bottom:var(--sp-3)}
+.zonebar .chip{flex:1;justify-content:center;padding:9px 8px}
+
+/* Shopping buckets */
+.shop-bucket{margin-bottom:var(--sp-2)}
+.shop-item{display:flex;align-items:center;gap:var(--sp-3);padding:11px var(--sp-4);
+  background:var(--surface);border-bottom:1px solid var(--line2)}
+.shop-item:first-child{border-radius:var(--rad-md) var(--rad-md) 0 0}
+.shop-item:last-child{border-bottom:0;border-radius:0 0 var(--rad-md) var(--rad-md)}
+.shop-item:only-child{border-radius:var(--rad-md)}
+.tick{width:23px;height:23px;border-radius:7px;border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#fff}
+.tick.on{background:var(--success);border-color:var(--success)}
+.need{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);
+  padding:3px 9px;border-radius:var(--rad-sm);flex-shrink:0}
+
+/* badges (used on pcard) */
+.badge{position:absolute;top:10px;left:10px;font-size:9.5px;font-weight:700;
+  padding:2px 7px;border-radius:var(--rad-sm)}
+.badge.low{background:var(--warn-soft);color:var(--warning)}
+.badge.out{background:var(--danger-soft);color:var(--danger)}
+
+.thumb{width:44px;height:44px;border-radius:var(--rad-sm);object-fit:cover;flex-shrink:0;background:var(--surface-2)}
+.photo-box{width:100%;height:150px;border-radius:var(--rad-md);background:var(--surface-2);object-fit:cover;
+  display:block;border:1px solid var(--line)}
+.photo-empty{width:100%;height:90px;border-radius:var(--rad-md);background:var(--surface-2);border:1px dashed var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12.5px}
+
+.empty{text-align:center;padding:52px 20px;color:var(--text-3)}
+.empty .icon{margin:0 auto 10px;color:var(--text-3)}
+
+/* ---- bottom persistent UI: ask bar + tab nav ---- */
+.bottombar{position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:linear-gradient(180deg, transparent, var(--bg) 28%);
+  padding:0 var(--sp-3) calc(var(--sp-2) + env(safe-area-inset-bottom))}
+.askbar{display:flex;align-items:center;gap:var(--sp-2);background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--rad-full);padding:6px 6px 6px var(--sp-4);
+  box-shadow:var(--shadow-lg);margin-bottom:var(--sp-2)}
+.askbar input{border:0;background:none;padding:8px 0;flex:1}
+.askbar input:focus{border:0}
+.askbar button{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;color:var(--text-2)}
+.askbar .send{background:var(--accent);color:var(--accent-ink)}
+.tabbar{display:flex;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--rad-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:9px 4px 8px;color:var(--text-3);font-size:10.5px;font-weight:600}
+.tabbar button.on{color:var(--accent)}
+.tabbar button .icon{color:inherit}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;
+  display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sheet{background:var(--surface);width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;
+  border-radius:var(--rad-lg) var(--rad-lg) 0 0;padding:var(--sp-4) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom));
+  border:1px solid var(--line);border-bottom:none}
+@media(min-width:560px){.overlay{align-items:center;padding:16px}.sheet{border-radius:var(--rad-lg);border-bottom:1px solid var(--line)}}
+.sheet h2{font-size:17px;font-weight:700;margin-bottom:2px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.btn{width:100%;padding:12px;border-radius:var(--rad-sm);font-weight:700;font-size:14.5px;
+  background:var(--surface-2);color:var(--text);text-align:center}
+.btn.a{background:var(--accent);color:var(--accent-ink)}
+.btn.g{background:var(--surface-2);color:var(--text)}
+.btn.r{background:var(--danger-soft);color:var(--danger)}
+.btn:active{transform:scale(.985)}
+
+/* settings: consumer rows + collapsible advanced */
+.setrow{display:flex;align-items:center;gap:var(--sp-3);background:var(--surface);
+  border-radius:var(--rad-md);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-2)}
+.setrow .ic{width:34px;height:34px;border-radius:var(--rad-sm);background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.setrow .t{font-weight:600;font-size:13.5px}
+.setrow .s{font-size:12px;color:var(--text-2)}
+details.adv{margin-top:var(--sp-5)}
+details.adv > summary{cursor:pointer;font-weight:700;font-size:13.5px;color:var(--text-2);
+  list-style:none;padding:var(--sp-2) 0}
+details.adv > summary::-webkit-details-marker{display:none}
+details.adv > summary::before{content:'▸ '}
+details.adv[open] > summary::before{content:'▾ '}
+
+/* ---- AI review sheet (parse_command confirmation, staging, dedupe) ---- */
+.srow{padding:10px 0;border-bottom:1px solid var(--line2)}
+.srow:last-child{border-bottom:0}
+.srow .two{gap:6px;margin-top:6px}
+.srow input,.srow select{padding:7px 9px;font-size:13px}
+.pill{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0}
+.pill.new{background:var(--ok-soft);color:var(--success)}
+.pill.upd{background:var(--accent-soft);color:var(--accent)}
+.pill.use{background:var(--danger-soft);color:var(--danger)}
+.group{background:var(--surface);border-radius:var(--rad-md);overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow)}
+
+/* camera + scan staging */
+#cam{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:var(--rad-md);background:#000;display:block}
+.shots{display:flex;gap:6px;overflow-x:auto;margin-top:8px;min-height:4px}
+.shots figure{position:relative;flex-shrink:0}
+.shots img{height:54px;border-radius:8px;border:1px solid var(--line);display:block}
+.shots button{position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:50%;
+  background:var(--danger);color:#fff;font-size:11px;line-height:1;display:flex;
+  align-items:center;justify-content:center}
+.shutter{width:62px;height:62px;border-radius:50%;background:#fff;border:4px solid var(--text);
+  margin:12px auto;display:block}
+.shutter:active{transform:scale(.9)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);
+  border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* toast */
+#toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;
+  transform:translate(-50%,-140%);z-index:99;background:var(--surface);color:var(--text);
+  border:1px solid var(--line);
+  padding:10px 16px;border-radius:var(--rad-sm);font-size:13.5px;font-weight:600;
+  transition:transform .22s ease;box-shadow:var(--shadow-lg);max-width:90vw}
+#toast.show{transform:translate(-50%,0)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+.dot.on{background:var(--success)} .dot.err{background:var(--danger)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row">
+    <div class="home-badge">🏠</div>
+    <div class="grow">
+      <div class="brand" id="tabTitle">Home OS</div>
+      <div class="row" style="gap:5px"><span class="dot" id="syncDot"></span><span class="muted" id="syncTxt">מקומי בלבד</span></div>
+    </div>
+    <button class="iconbtn" id="btnSettings" title="הגדרות">⚙️</button>
+  </div>
+</header>
+
+<main>
+  <div id="view"></div>
+</main>
+
+<div class="bottombar">
+  <div class="askbar">
+    <button class="iconbtn" id="askCam" title="סרוק ארון" style="background:none"></button>
+    <input id="askInput" type="text" placeholder="ספר ל-Home OS מה קרה…">
+    <button class="send" id="askSend" title="שלח"></button>
+  </div>
+  <div class="tabbar">
+    <button data-tab="home" class="on"><span class="icon"></span>בית</button>
+    <button data-tab="supplies"><span class="icon"></span>מצרכים</button>
+    <button data-tab="kitchen"><span class="icon"></span>מטבח</button>
+    <button data-tab="shopping"><span class="icon"></span>קניות</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="modals"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   HOME OS — single-file, local-first, optional Firebase sync
+   Data lives in localStorage. Firebase (if configured) mirrors it.
+   ============================================================ */
+
+const LS_DATA = 'homeos_v2';
+const LS_FB   = 'homeos_fbcfg';
+const MAX_EVENTS = 500;
+const SCHEMA_VERSION = 2;
+
+const DEFAULT_SPACES = [
+  {id:'bathroom', name:'חדר רחצה',  emoji:'🚿'},
+  {id:'kitchen',  name:'מטבח ומזווה', emoji:'🍳'},
+  {id:'bedroom',  name:'חדר שינה',  emoji:'🛏️'},
+  {id:'study',    name:'עמדת לימוד', emoji:'🩺'},
+];
+const DEFAULT_CATS = [
+  {id:'grooming',     name:'בישום וטיפוח', emoji:'🧴'},
+  {id:'bath_hygiene', name:'רחצה והיגיינה', emoji:'🧼'},
+  {id:'laundry_home', name:'כביסה ורענון',  emoji:'👕'},
+  {id:'food',         name:'מזון ומשקאות',  emoji:'🥫'},
+  {id:'coffee',       name:'קפה',           emoji:'☕'},
+  {id:'medstudy',     name:'ציוד לימודים',  emoji:'📚'},
+  {id:'health',       name:'עזרה ראשונה',   emoji:'🩹'},
+];
+/* categories confidently classified as fast-cycle kitchen stock during
+   migration — everything else defaults to "supply" (the app's original,
+   safe behavior) rather than guessing */
+const KITCHEN_CAT_IDS = new Set(['food','coffee']);
+
+const ZONE_LABEL = { fridge:'מקרר', pantry:'מזווה', freezer:'מקפיא' };
+const ZONES = ['pantry','fridge','freezer'];
+
+/* ---------- tiny inline icon system ----------
+   Replaces emoji as the primary category/product icon. Stroke-based,
+   currentColor, so they theme automatically. Falls back to a generic
+   box for anything unmapped — never emoji, per the redesign brief. */
+const ICON_PATHS = {
+  bottle:  'M9 2h6v3.2l2 2.3V22H7V7.5l2-2.3V2Z M9 2h6',
+  droplet: 'M12 3c3 4 6 7.2 6 10.5A6 6 0 1 1 6 13.5C6 10.2 9 7 12 3Z',
+  shirt:   'M8 3 4 6l2 3 2-1v13h8V8l2 1 2-3-4-3-2 2h-2L8 3Z',
+  cart:    'M3 4h2l2.4 12.2A2 2 0 0 0 9.4 18H18a2 2 0 0 0 2-1.7L21 8H6',
+  coffee:  'M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z M17 9h1.5a2.5 2.5 0 0 1 0 5H17 M3 21h15',
+  book:    'M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3V4Z M17 20a3 3 0 0 0-3-3H5',
+  cross:   'M12 4v16M4 12h16',
+  box:     'M3 8 12 4l9 4-9 4-9-4Z M3 8v9l9 4V12 M21 8v9l-9 4',
+  fridge:  'M6 3h12v18H6V3Z M6 10h12 M9 5.5h0 M9 13h0',
+  freezer: 'M12 2v20 M5 6l14 12 M19 6 5 18 M6 3l6 3 6-3 M6 21l6-3 6 3',
+  home:    'M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z',
+  chat:    'M4 4h16v12H8l-4 4V4Z',
+  check:   'M5 12l5 5L19 7',
+  history: 'M4 12a8 8 0 1 1 3 6.2 M4 12V7 M4 12h5',
+  sync:    'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3 M18 4v4h-4 M6 20v-4h4',
+  robot:   'M9 8V5h6v3 M5 8h14v11H5V8Z M9 13h0 M15 13h0',
+  camera:  'M4 8h3l2-3h6l2 3h3v11H4V8Z M12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+  send:    'M4 20 20 12 4 4 4 10 15 12 4 14Z',
+  search:  'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z M20 20l-4.3-4.3',
+  plus:    'M12 5v14 M5 12h14',
+};
+function iconSvg(name, size){
+  size = size || 20;
+  const d = ICON_PATHS[name] || ICON_PATHS.box;
+  return `<span class="icon" style="width:${size}px;height:${size}px"><svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${
+    d.split(' M').map((seg,i)=> `<path d="${i===0?seg:'M'+seg}"/>`).join('')
+  }</svg></span>`;
+}
+/* category id -> icon key, used everywhere a product/category needs an icon */
+const CAT_ICON = {
+  grooming:'droplet', bath_hygiene:'droplet', laundry_home:'shirt',
+  food:'cart', coffee:'coffee', medstudy:'book', health:'cross'
+};
+function catIcon(catId){ return CAT_ICON[catId] || 'box'; }
+
+let S = {
+  items:[], spaces:[], cats:[], extras:[], events:[],
+  meta:{ updatedAt:0, schemaVersion:0 }
+};
+const UI = { tab:'home', space:'all', cat:'all', view:'grid', q:'', zone:'all' };
+
+/* ---------- helpers ---------- */
+const $  = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let toastT;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ---------- state normalization / migration ----------
+   S.meta.schemaVersion tracks the shape of S.items. Runs on every load
+   path (localStorage, JSON import, incoming Firebase snapshot) so none
+   of them can ever hand the rest of the app a pre-2.0 item shape.
+   Uncertain items default to inventoryMode "supply" — that's exactly
+   how every item already behaved before this version, so it's a safe
+   default, never an aggressive guess. Nothing here can drop an item. */
+function migrateState(state){
+  state = state || {};
+  state.items   = Array.isArray(state.items)   ? state.items   : [];
+  state.spaces  = Array.isArray(state.spaces)  ? state.spaces  : [];
+  state.cats    = Array.isArray(state.cats)    ? state.cats    : [];
+  state.extras  = Array.isArray(state.extras)  ? state.extras  : [];
+  state.events  = Array.isArray(state.events)  ? state.events  : [];
+  state.meta    = state.meta || {};
+  if (!state.meta.schemaVersion) state.meta.schemaVersion = 0;
+
+  if (state.meta.schemaVersion < SCHEMA_VERSION){
+    state.items = state.items.map(raw => {
+      const it = Object.assign({}, raw);
+      if (it.inventoryMode !== 'supply' && it.inventoryMode !== 'kitchen'){
+        it.inventoryMode = KITCHEN_CAT_IDS.has(it.catId) ? 'kitchen' : 'supply';
+      }
+      if (it.inventoryMode !== 'kitchen') it.kitchenZone = null;
+      else if (!ZONES.includes(it.kitchenZone)) it.kitchenZone = 'pantry';
+      if (it.familyId === undefined)    it.familyId = null;
+      if (it.familyName === undefined)  it.familyName = '';
+      if (it.variantName === undefined) it.variantName = '';
+      return it;
+    });
+    state.meta.schemaVersion = SCHEMA_VERSION;
+  }
+  return state;
+}
+
+/* ---------- persistence ---------- */
+function save(push = true){
+  S.meta.updatedAt = Date.now();
+  if (S.events.length > MAX_EVENTS) S.events = S.events.slice(-MAX_EVENTS);
+  try { localStorage.setItem(LS_DATA, JSON.stringify(S)); }
+  catch(e){ toast('אחסון מקומי מלא'); }
+  if (push) pushRemote();
+  render();
+}
+
+function load(){
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(LS_DATA) || 'null'); } catch(e){}
+  if (raw && Array.isArray(raw.items)) {
+    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],meta:{updatedAt:0,schemaVersion:0}}, raw);
+  }
+  S = migrateState(S);
+  if (!S.spaces.length) S.spaces = DEFAULT_SPACES.map(x=>({...x}));
+  if (!S.cats.length)   S.cats   = DEFAULT_CATS.map(x=>({...x}));
+}
+
+/* every quantity change is recorded — inventory is reconstructable */
+function logEvent(type, itemId, delta, note){
+  S.events.push({ id:uid(), ts:Date.now(), type, itemId, delta:delta||0, note:note||'' });
+}
+
+/* ---------- derived selectors (single source of truth for filtering) ---------- */
+const spaceOf = id => S.spaces.find(s=>s.id===id);
+const catOf   = id => S.cats.find(c=>c.id===id) || {name:'ללא קטגוריה', emoji:'📦'};
+
+function getSupplyItems(){ return S.items.filter(i => i.inventoryMode !== 'kitchen'); }
+function getKitchenItems(){ return S.items.filter(i => i.inventoryMode === 'kitchen'); }
+function getKitchenItemsByZone(zone){
+  const k = getKitchenItems();
+  return (zone && zone !== 'all') ? k.filter(i => (i.kitchenZone||'pantry') === zone) : k;
+}
+/* target - qty per item, optionally scoped to a pool (defaults to everything) */
+function shortages(pool){
+  return (pool || S.items)
+    .map(it => ({ item:it, need: Math.max(0, (Number(it.target)||0) - (Number(it.qty)||0)) }))
+    .filter(x => x.need > 0)
+    .sort((a,b)=> (a.item.qty - b.item.qty) || b.need - a.need);
+}
+function getShoppingNeeds(){ return shortages(); }
+function getNeedsAttention(){
+  return S.items
+    .filter(i => (Number(i.qty)||0) === 0 || (Number(i.qty)||0) < (Number(i.target)||0))
+    .sort((a,b)=> (Number(a.qty)||0) - (Number(b.qty)||0));
+}
+/* items sharing a familyId, grouped for display — a presentation layer
+   only; membership is opt-in (see openItem) and never auto-merges records */
+function getFamilies(){
+  const map = new Map();
+  S.items.forEach(it => {
+    if (!it.familyId) return;
+    if (!map.has(it.familyId)) map.set(it.familyId, { id: it.familyId, name: it.familyName || it.name, items: [] });
+    map.get(it.familyId).items.push(it);
+  });
+  return [...map.values()];
+}
+function householdStatus(){
+  const total = S.items.length;
+  if (!total) return { pct:100, needing:0 };
+  const ok = S.items.filter(i => (Number(i.qty)||0) >= (Number(i.target)||0)).length;
+  return { pct: Math.round(ok/total*100), needing: total - ok };
+}
+
+function photoSrc(it){ return it.photo || it.photoUrl || ''; }
+
+function compressImageFile(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('קריאת הקובץ נכשלה'));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('לא ניתן לקרוא את התמונה'));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* Space color is now only used as a small wayfinding dot in the Supplies
+   filter chips (not on every card — the redesign asked for less color at
+   once). Fixed palette, hashed by space id, so it's stable across renders. */
+const SPACE_PALETTE = ['#4FA89C','#C1683E','#8177B8','#5F84A6','#B8935F','#7C9473'];
+function spaceColor(spaceId){
+  if (!spaceId) return null;
+  let h = 0;
+  for (let i = 0; i < spaceId.length; i++) h = (h * 31 + spaceId.charCodeAt(i)) >>> 0;
+  return SPACE_PALETTE[h % SPACE_PALETTE.length];
+}
+
+function stepperHTML(it){
+  const q = Number(it.qty)||0;
+  return `<div class="stepper">
+    <button data-q="${it.id}" data-d="-1">−</button>
+    <span class="n ${q===0?'z':''}">${q}</span>
+    <button data-q="${it.id}" data-d="1">+</button></div>`;
+}
+
+function pcardHTML(it){
+  const q = Number(it.qty)||0, t = Number(it.target)||1;
+  const tag = q===0 ? `<span class="status-tag out">אזל</span>`
+            : q<t   ? `<span class="status-tag low">חסר ${t-q}</span>` : '';
+  const src = photoSrc(it);
+  return `<div class="pcard ${q===0?'out':''}">
+    ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<div class="swatch">${iconSvg(catIcon(it.catId),20)}</div>`}
+    <div class="info" data-edit="${it.id}">
+      <div class="name trunc">${esc(it.name)}</div>
+      <div class="sub trunc">${esc(it.brand||catOf(it.catId).name)}</div>
+      ${tag}
+    </div>
+    ${stepperHTML(it)}
+  </div>`;
+}
+
+function familyCardHTML(fid, arr){
+  const totalQty = arr.reduce((a,i)=>a+(Number(i.qty)||0),0);
+  const name = arr[0].familyName || arr[0].name;
+  const anyOut = arr.some(i=>!Number(i.qty));
+  const anyLow = !anyOut && arr.some(i=> Number(i.qty)>0 && Number(i.qty) < (Number(i.target)||1));
+  const tag = anyOut ? `<span class="status-tag out">חלק אזל</span>`
+            : anyLow ? `<span class="status-tag low">לקראת סוף</span>` : '';
+  return `<button class="pcard" data-fam="${esc(fid)}" style="text-align:right">
+    <div class="swatch">${iconSvg(catIcon(arr[0].catId),20)}</div>
+    <div class="info">
+      <div class="name trunc">${esc(name)}</div>
+      <div class="sub trunc">${totalQty} יחידות · ${arr.length} גרסאות</div>
+      ${tag}
+    </div>
+  </button>`;
+}
+
+function openFamily(fid){
+  const items = S.items.filter(i=>i.familyId===fid);
+  if (!items.length) return;
+  const name = items[0].familyName || items[0].name;
+  sheet(`
+    <h2>${esc(name)}</h2>
+    <p class="muted" style="margin-bottom:10px">${items.length} גרסאות · לשינוי שיוך משפחה, ערוך כל מוצר בנפרד</p>
+    <div class="plist">${items.map(it=>pcardHTML(it)).join('')}</div>
+    <button class="btn g" id="famClose" style="margin-top:14px">סגירה</button>
+  `, () => { $('famClose').onclick = closeSheet; });
+}
+
+/* ---------- render dispatch ---------- */
+const TAB_TITLES = { home:'Home OS', supplies:'מצרכים', kitchen:'מטבח', shopping:'קניות' };
+
+function render(){
+  $('tabTitle').textContent = TAB_TITLES[UI.tab] || 'Home OS';
+  document.querySelectorAll('.tabbar button[data-tab]').forEach(b =>
+    b.classList.toggle('on', b.dataset.tab === UI.tab));
+  const el = $('view');
+  if (UI.tab === 'supplies')      el.innerHTML = renderSupplies();
+  else if (UI.tab === 'kitchen')  el.innerHTML = renderKitchen();
+  else if (UI.tab === 'shopping') el.innerHTML = renderShoppingTab();
+  else                            el.innerHTML = renderHome();
+  wireTabExtras();
+}
+
+/* elements that live inside #view get replaced on every render(), so their
+   handlers must be rebound every time — delegated clicks (data-*) don't
+   need this, only direct bindings like oninput/onkeydown do. */
+function wireTabExtras(){
+  if (UI.tab === 'supplies'){
+    if ($('supQ')) $('supQ').oninput = e => { UI.q = e.target.value; render(); };
+    if ($('openAddSupply')) $('openAddSupply').onclick = () => openItem(null, {inventoryMode:'supply'});
+  }
+  if (UI.tab === 'kitchen'){
+    if ($('kitQ')) $('kitQ').oninput = e => { UI.q = e.target.value; render(); };
+    if ($('openAddKitchen')) $('openAddKitchen').onclick = () =>
+      openItem(null, {inventoryMode:'kitchen', kitchenZone: UI.zone!=='all' ? UI.zone : 'pantry'});
+  }
+  if (UI.tab === 'shopping'){
+    if ($('shopNew')) $('shopNew').onkeydown = e => { if (e.key==='Enter') $('shopAdd').click(); };
+    if ($('shopAdd')) $('shopAdd').onclick = () => {
+      const t = $('shopNew').value.trim(); if(!t) return;
+      S.extras.push({id:uid(), text:t, got:false}); save(false); render();
+    };
+    if ($('shopWa')) $('shopWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(shopText()), '_blank');
+    if ($('shopCp')) $('shopCp').onclick = async () => {
+      try { await navigator.clipboard.writeText(shopText()); toast('הועתק'); }
+      catch(e){ toast('ההעתקה נחסמה בדפדפן'); }
+    };
+    if ($('shopDone')) $('shopDone').onclick = () => {
+      let n = 0;
+      getShoppingNeeds().forEach(({item,need}) => {
+        if (!item._got) return;
+        item.qty = (Number(item.qty)||0) + need;
+        logEvent('PURCHASE', item.id, need, 'קנייה מהרשימה');
+        delete item._got; n++;
+      });
+      S.extras = S.extras.filter(e=>!e.got);
+      save();
+      toast(n ? `${n} מוצרים עודכנו` : 'לא סומן כלום');
+    };
+  }
+}
+
+/* ---------- Home dashboard ----------
+   Status first, raw counts never — "92% במלאי", not "29 מוצרים / 78 יחידות".
+   Only a handful of the most urgent items get their own card below it. */
+function renderHome(){
+  const supply = getSupplyItems(), kitchen = getKitchenItems();
+  const supplyNeed = shortages(supply).length;
+  const kitchenNeed = shortages(kitchen).length;
+  const shopCount = getShoppingNeeds().length + S.extras.filter(e=>!e.got).length;
+  const stat = householdStatus();
+  const attention = getNeedsAttention().slice(0, 5);
+
+  return `
+    <div class="hero row">
+      <div class="hero-ring" style="background:conic-gradient(var(--success) ${stat.pct*3.6}deg, var(--surface-2) 0deg)"></div>
+      <div class="grow">
+        <div class="hero-title">מצב הבית</div>
+        <div class="hero-value">${stat.pct}% במלאי</div>
+        <div class="muted">${stat.needing ? `${stat.needing} מוצרים דורשים תשומת לב` : 'הכל תקין'}</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <button class="dash-card" data-tab="supplies" style="text-align:right">
+        <div class="ic">${iconSvg('bottle',20)}</div>
+        <div class="lbl">מצרכים</div>
+        <div class="sub">${supplyNeed ? `${supplyNeed} דורשים חידוש` : 'הכל תקין'}</div>
+      </button>
+      <button class="dash-card" data-tab="kitchen" style="text-align:right">
+        <div class="ic">${iconSvg('fridge',20)}</div>
+        <div class="lbl">מטבח</div>
+        <div class="sub">${kitchenNeed ? `${kitchenNeed} דורשים תשומת לב` : 'הכל תקין'}</div>
+      </button>
+      <button class="dash-card" data-tab="shopping" style="grid-column:1 / -1;text-align:right">
+        <div class="row">
+          <div class="ic">${iconSvg('cart',20)}</div>
+          <div class="grow">
+            <div class="lbl">קניות</div>
+            <div class="sub">${shopCount ? `${shopCount} פריטים ברשימה` : 'הרשימה ריקה'}</div>
+          </div>
+        </div>
+      </button>
+    </div>
+
+    ${attention.length ? `
+      <div class="section-title">צריך תשומת לב</div>
+      ${attention.map(it => attnCardHTML(it)).join('')}
+    ` : ''}
+  `;
+}
+
+function attnCardHTML(it){
+  const q = Number(it.qty)||0, isOut = q===0;
+  return `<div class="attn-card" data-edit="${it.id}">
+    <span class="dot-status" style="background:${isOut?'var(--danger)':'var(--warning)'}"></span>
+    <div class="ic" style="width:34px;height:34px">${iconSvg(catIcon(it.catId),16)}</div>
+    <div class="grow">
+      <div style="font-weight:600;font-size:13.5px">${esc(it.name)}</div>
+      <div class="muted">${isOut?'אזל':'נמוך'} · יש ${q}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Supplies (Phase 5) ---------- */
+function renderSupplies(){
+  const q = UI.q.trim().toLowerCase();
+  const all = getSupplyItems();
+  const filtered = all.filter(it => {
+    if (UI.space !== 'all' && it.spaceId !== UI.space) return false;
+    if (UI.cat   !== 'all' && it.catId   !== UI.cat)   return false;
+    if (!q) return true;
+    return (it.name||'').toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q);
+  });
+
+  const families = new Map();
+  const solo = [];
+  filtered.forEach(it => {
+    if (it.familyId){
+      if (!families.has(it.familyId)) families.set(it.familyId, []);
+      families.get(it.familyId).push(it);
+    } else solo.push(it);
+  });
+
+  const below = shortages(all).length;
+  const spaceChips = ['all', ...S.spaces.map(s=>s.id)].map(id=>{
+    const s = id==='all' ? {name:'הכל'} : spaceOf(id);
+    if (!s) return '';
+    const col = id==='all' ? null : spaceColor(id);
+    const dot = col ? `<span style="width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0"></span>` : '';
+    const n = id==='all' ? all.length : all.filter(i=>i.spaceId===id).length;
+    if (id!=='all' && !n) return '';
+    return `<button class="chip ${UI.space===id?'on':''}" data-sp="${esc(id)}">${dot}${esc(s.name)} <span style="opacity:.6">${n}</span></button>`;
+  }).join('');
+
+  return `
+    <div class="row" style="margin-bottom:10px">
+      <div class="grow muted">${all.length} מוצרים${below?` · ${below} מתחת ליעד`:''}</div>
+      <button class="iconbtn on" id="openAddSupply">${iconSvg('plus',15)}</button>
+    </div>
+    <div class="search" style="margin-bottom:10px">
+      <input id="supQ" placeholder="חיפוש מוצר או מותג…" value="${esc(UI.q)}">
+      <span>${iconSvg('search',14)}</span>
+    </div>
+    <div class="scroll-x" style="margin-bottom:12px">${spaceChips}</div>
+
+    <div class="plist">
+      ${[...families.entries()].map(([fid, arr]) => familyCardHTML(fid, arr)).join('')}
+      ${solo.map(it => pcardHTML(it)).join('')}
+    </div>
+    ${!filtered.length ? `<div class="empty"><div class="icon" style="justify-content:center">${iconSvg('bottle',34)}</div><div>לא נמצאו מוצרים</div></div>` : ''}
+  `;
+}
+
+/* ---------- Kitchen (Phase 6) ----------
+   Zones instead of a filter row, cards prioritize product/qty/status only,
+   and tapping opens an action sheet instead of exposing a raw stepper —
+   fewer, clearer taps for a fast-cycle inventory. */
+function renderKitchen(){
+  const q = UI.q.trim().toLowerCase();
+  const allK = getKitchenItems();
+  let items = getKitchenItemsByZone(UI.zone);
+  if (q) items = items.filter(it => (it.name||'').toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q));
+
+  return `
+    <div class="search" style="margin-bottom:10px">
+      <input id="kitQ" placeholder="חיפוש…" value="${esc(UI.q)}">
+      <span>${iconSvg('search',14)}</span>
+    </div>
+    <div class="zonebar">
+      <button class="chip ${UI.zone==='all'?'on':''}" data-zone="all">הכל <span style="opacity:.6">${allK.length}</span></button>
+      ${ZONES.map(z=>`<button class="chip ${UI.zone===z?'on':''}" data-zone="${z}">${esc(ZONE_LABEL[z])} <span style="opacity:.6">${allK.filter(i=>(i.kitchenZone||'pantry')===z).length}</span></button>`).join('')}
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="grow muted">${items.length} פריטים</div>
+      <button class="iconbtn on" id="openAddKitchen">${iconSvg('plus',15)}</button>
+    </div>
+    <div class="plist">${items.map(it=>kitchenCardHTML(it)).join('')}</div>
+    ${!items.length ? `<div class="empty"><div class="icon" style="justify-content:center">${iconSvg('fridge',34)}</div><div>אין פריטים כאן</div></div>` : ''}
+  `;
+}
+
+function kitchenCardHTML(it){
+  const q = Number(it.qty)||0;
+  const tag = q===0 ? `<span class="status-tag out">אזל</span>`
+            : q < (Number(it.target)||1) ? `<span class="status-tag low">נמוך</span>`
+            : `<span class="status-tag ok">תקין</span>`;
+  const src = photoSrc(it);
+  return `<button class="pcard" data-kitchen-item="${it.id}" style="text-align:right">
+    ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<div class="swatch">${iconSvg(catIcon(it.catId),20)}</div>`}
+    <div class="info">
+      <div class="name trunc">${esc(it.name)}</div>
+      <div class="sub trunc">${q} יחידות</div>
+      ${tag}
+    </div>
+  </button>`;
+}
+
+function openKitchenActions(id){
+  const it = S.items.find(i=>i.id===id);
+  if (!it) return;
+  sheet(`
+    <h2>${esc(it.name)}</h2>
+    <p class="muted" style="margin-bottom:14px">${esc(it.brand||'')}${it.brand?' · ':''}יש ${Number(it.qty)||0} יחידות</p>
+    <button class="btn a" id="kaUse">השתמשתי באחד</button>
+    <button class="btn g" id="kaAdd" style="margin-top:8px">הוספת מלאי</button>
+    <button class="btn g" id="kaEdit" style="margin-top:8px">עריכה</button>
+    <button class="btn g" id="kaHist" style="margin-top:8px">היסטוריה</button>
+    <button class="btn g" id="kaClose" style="margin-top:8px">סגירה</button>
+  `, () => {
+    $('kaClose').onclick = closeSheet;
+    $('kaUse').onclick = () => {
+      const next = Math.max(0, (Number(it.qty)||0) - 1);
+      if (next !== it.qty){ it.qty = next; logEvent('USED', it.id, -1, 'שימוש מהיר — מטבח'); save(); toast('עודכן'); }
+      closeSheet();
+    };
+    $('kaAdd').onclick = () => {
+      it.qty = (Number(it.qty)||0) + 1;
+      logEvent('PURCHASE', it.id, 1, 'הוספת מלאי — מטבח');
+      save(); toast('עודכן'); closeSheet();
+    };
+    $('kaEdit').onclick = () => { closeSheet(); openItem(it.id); };
+    $('kaHist').onclick = () => openItemHistory(it.id);
+  });
+}
+
+const EVENT_TYPE_LABEL = { PURCHASE:'קנייה', USED:'שימוש', CORRECTION:'תיקון', SCAN:'סריקה', DELETE:'מחיקה' };
+function openItemHistory(id){
+  const it = S.items.find(i=>i.id===id);
+  const evs = S.events.filter(e=>e.itemId===id).slice(-25).reverse();
+  sheet(`
+    <h2>היסטוריה${it?' — '+esc(it.name):''}</h2>
+    ${evs.length ? `<div class="group" style="margin-top:10px">${evs.map(e=>`
+      <div class="shop-item">
+        <div class="grow">
+          <div style="font-weight:600;font-size:13px">${esc(EVENT_TYPE_LABEL[e.type]||e.type)} ${e.delta>0?'+':''}${e.delta}</div>
+          <div class="muted">${new Date(e.ts).toLocaleString('he-IL')}${e.note?' · '+esc(e.note):''}</div>
+        </div>
+      </div>`).join('')}</div>` : `<p class="muted" style="margin-top:10px">אין עדיין היסטוריה</p>`}
+    <button class="btn g" id="histClose" style="margin-top:14px">סגירה</button>
+  `, () => { $('histClose').onclick = closeSheet; });
+}
+
+/* ---------- Shopping (Phase 7) ----------
+   Still derived state (target - qty) plus manual extras — no separate
+   shopping database. Bucketed by urgency: kitchen needs are inherently
+   "this week"; out-of-stock supply items are "soon"; supply items that
+   are merely below target (but not zero) can wait for a bigger restock. */
+function renderShoppingTab(){
+  const needs = getShoppingNeeds();
+  const kitchenNeeds = needs.filter(n => n.item.inventoryMode === 'kitchen');
+  const supplyNeeds  = needs.filter(n => n.item.inventoryMode !== 'kitchen');
+  const outNow  = supplyNeeds.filter(n => Number(n.item.qty) === 0);
+  const lowSoon = supplyNeeds.filter(n => Number(n.item.qty) > 0);
+  const extras = S.extras;
+  const empty = !needs.length && !extras.length;
+
+  function bucket(title, list){
+    if (!list.length) return '';
+    return `<div class="shop-bucket">
+      <div class="section-title">${title}</div>
+      <div class="group">${list.map(n => shopItemHTML(n)).join('')}</div>
+    </div>`;
+  }
+
+  const extrasHTML = extras.length ? `<div class="shop-bucket">
+    <div class="section-title">נוסף ידנית</div>
+    <div class="group">${extras.map(e=>`
+      <div class="shop-item">
+        <div class="tick ${e.got?'on':''}" data-xgot="${e.id}">✓</div>
+        <div class="grow trunc" style="font-weight:600;font-size:13.5px;${e.got?'opacity:.45;text-decoration:line-through':''}">${esc(e.text)}</div>
+        <button class="iconbtn" style="width:26px;height:26px;background:transparent" data-xdel="${e.id}">✕</button>
+      </div>`).join('')}</div>
+  </div>` : '';
+
+  return `
+    <div class="row" style="margin-bottom:12px">
+      <input id="shopNew" class="grow" placeholder="הוסף פריט חופשי…">
+      <button class="iconbtn on" id="shopAdd">${iconSvg('plus',16)}</button>
+    </div>
+    ${empty ? `<div class="empty"><div class="icon" style="justify-content:center">${iconSvg('check',34)}</div><div>אין מה לקנות</div></div>` : ''}
+    ${bucket('השבוע', kitchenNeeds)}
+    ${bucket('בקרוב', outNow)}
+    ${bucket('מלאי סמסטריאלי', lowSoon)}
+    ${extrasHTML}
+    ${!empty ? `
+      <button class="btn a" id="shopWa" style="margin-top:6px">שליחה לוואטסאפ</button>
+      <button class="btn g" id="shopCp" style="margin-top:8px">העתקה כטקסט</button>
+      <button class="btn g" id="shopDone" style="margin-top:8px">סמן מסומנים כנקנו והפחת חוסרים</button>
+    ` : ''}
+  `;
+}
+
+function shopItemHTML(n){
+  const item = n.item;
+  return `<div class="shop-item">
+    <div class="tick ${item._got?'on':''}" data-need="${item.id}">✓</div>
+    <div class="grow" style="${item._got?'opacity:.45;text-decoration:line-through':''}">
+      <div class="trunc" style="font-weight:600;font-size:13.5px">${esc(item.name)}</div>
+      <div class="muted trunc">${esc(item.brand||'')}${item.note?' · '+esc(item.note):''}</div>
+    </div>
+    <span class="need">×${n.need}</span>
+  </div>`;
+}
+
+function shopText(){
+  const sh = getShoppingNeeds();
+  let t = '🛒 רשימת קניות — Home OS\n';
+  const byCat = {};
+  sh.forEach(({item,need}) => (byCat[item.catId] = byCat[item.catId]||[]).push({item,need}));
+  Object.entries(byCat).forEach(([cid, arr]) => {
+    const c = catOf(cid);
+    t += `\n${c.name}\n`;
+    arr.forEach(({item,need}) => {
+      t += `• ${item.name}${item.brand?' ('+item.brand+')':''} ×${need}\n`;
+    });
+  });
+  const ex = S.extras.filter(e=>!e.got);
+  if (ex.length){ t += `\nנוסף ידנית\n`; ex.forEach(e=> t += `• ${e.text}\n`); }
+  return t.trim() || 'הרשימה ריקה';
+}
+
+/* ---------- item CRUD ---------- */
+function suggestFamilyName(name, brand){
+  brand = (brand||'').trim();
+  if (!brand) return '';
+  const fams = getFamilies();
+  for (const f of fams){
+    const rep = f.items[0];
+    if (rep.brand && rep.brand.toLowerCase().trim() === brand.toLowerCase()) return f.name;
+  }
+  return '';
+}
+
+function openItem(id, defaults){
+  const it = id ? S.items.find(i=>i.id===id) : null;
+  defaults = defaults || {};
+  let pendingPhoto = it ? (it.photo || it.photoUrl || '') : '';
+  let mode = it ? (it.inventoryMode||'supply') : (defaults.inventoryMode||'supply');
+  const spOpts = S.spaces.map(s=>`<option value="${esc(s.id)}" ${(it?it.spaceId:defaults.spaceId)===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  const ctOpts = S.cats.map(c=>`<option value="${esc(c.id)}" ${(it?it.catId:defaults.catId)===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  const zoneVal = it ? (it.kitchenZone||'pantry') : (defaults.kitchenZone||'pantry');
+  const famNames = [...new Set(getFamilies().map(f=>f.name))];
+
+  sheet(`
+    <h2>${it ? 'עריכת מוצר' : 'מוצר חדש'}</h2>
+
+    <div class="two" style="margin-bottom:11px">
+      <button type="button" class="btn ${mode==='supply'?'a':'g'}" id="modeSupply">מצרכים</button>
+      <button type="button" class="btn ${mode==='kitchen'?'a':'g'}" id="modeKitchen">מטבח</button>
+    </div>
+    <div class="field" id="zoneField" style="${mode==='kitchen'?'':'display:none'}">
+      <label>אזור</label>
+      <select id="fZone">${ZONES.map(z=>`<option value="${z}" ${zoneVal===z?'selected':''}>${esc(ZONE_LABEL[z])}</option>`).join('')}</select>
+    </div>
+
+    <div id="photoPreviewWrap" style="margin-bottom:10px"></div>
+    <div class="two" style="margin-bottom:10px">
+      <button type="button" class="btn g" id="photoCamBtn">📷 צלם</button>
+      <button type="button" class="btn g" id="photoGalBtn">🖼️ מהגלריה</button>
+    </div>
+    <input type="file" accept="image/*" capture="environment" id="fPhotoCam" class="hidden">
+    <input type="file" accept="image/*" id="fPhotoGal" class="hidden">
+
+    <div class="field"><label>שם המוצר *</label><input id="fName" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
+    <div class="field"><label>מותג</label><input id="fBrand" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
+    <div class="field">
+      <label>משפחת מוצר (רשות)</label>
+      <input id="fFamily" list="famList" value="${it?esc(it.familyName||''):''}" placeholder="למשל: AXE דאודורנט">
+      <datalist id="famList">${famNames.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      <div class="muted" id="famHint" style="margin-top:4px"></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>חלל</label><select id="fSpace">${spOpts}</select></div>
+      <div class="field"><label>קטגוריה</label><select id="fCat">${ctOpts}</select></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>כמות נוכחית</label><input id="fQty" type="number" inputmode="numeric" min="0" value="${it?(Number(it.qty)||0):1}"></div>
+      <div class="field"><label>כמות יעד</label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${it?(Number(it.target)||1):1}"></div>
+    </div>
+    <div class="field"><label>הערה</label><input id="fNote" value="${it?esc(it.note||''):''}" placeholder="גודל, חנות מועדפת, מחיר…"></div>
+    <button class="btn a" id="fSave" style="margin-top:4px">שמירה</button>
+    ${it?`<button class="btn r" id="fDel" style="margin-top:8px">מחיקת המוצר</button>`:''}
+    <button class="btn g" id="fCancel" style="margin-top:8px">ביטול</button>
+  `, () => {
+    $('modeSupply').onclick = () => {
+      mode = 'supply'; $('modeSupply').className = 'btn a'; $('modeKitchen').className = 'btn g';
+      $('zoneField').style.display = 'none';
+    };
+    $('modeKitchen').onclick = () => {
+      mode = 'kitchen'; $('modeKitchen').className = 'btn a'; $('modeSupply').className = 'btn g';
+      $('zoneField').style.display = '';
+    };
+
+    function paintPhoto(){
+      $('photoPreviewWrap').innerHTML = pendingPhoto
+        ? `<div style="position:relative"><img class="photo-box" src="${esc(pendingPhoto)}" alt="">
+             <button type="button" id="photoRemove" class="iconbtn" style="position:absolute;top:6px;left:6px;background:rgba(17,24,39,.55);color:#fff">✕</button></div>`
+        : `<div class="photo-empty">אין תמונה</div>`;
+      if ($('photoRemove')) $('photoRemove').onclick = () => { pendingPhoto = ''; paintPhoto(); };
+    }
+    paintPhoto();
+
+    $('photoCamBtn').onclick = () => $('fPhotoCam').click();
+    $('photoGalBtn').onclick = () => $('fPhotoGal').click();
+    async function handlePhotoFile(e){
+      const file = e.target.files[0]; e.target.value = '';
+      if (!file) return;
+      try { pendingPhoto = await compressImageFile(file, 640, 0.65); paintPhoto(); }
+      catch(err){ toast(err.message); }
+    }
+    $('fPhotoCam').onchange = handlePhotoFile;
+    $('fPhotoGal').onchange = handlePhotoFile;
+
+    $('fBrand').addEventListener('blur', () => {
+      if ($('fFamily').value.trim()) return;
+      const sug = suggestFamilyName($('fName').value, $('fBrand').value);
+      $('famHint').innerHTML = sug
+        ? `💡 קיימת משפחה "${esc(sug)}" לאותו מותג — <button type="button" id="famApply" style="color:var(--accent);text-decoration:underline">השתמש</button>`
+        : '';
+      if ($('famApply')) $('famApply').onclick = () => { $('fFamily').value = sug; $('famHint').innerHTML = ''; };
+    });
+
+    $('fCancel').onclick = closeSheet;
+    $('fSave').onclick = () => {
+      const name = $('fName').value.trim();
+      if (!name) return toast('חסר שם מוצר');
+      const tRaw = $('fTarget').value.trim();
+      const photoChanged = pendingPhoto !== (it ? (it.photo || it.photoUrl || '') : '');
+      const famNameInput = $('fFamily').value.trim();
+
+      const data = {
+        name, brand:$('fBrand').value.trim(),
+        spaceId:$('fSpace').value, catId:$('fCat').value,
+        qty:Math.max(0, parseInt($('fQty').value)||0),
+        // blank target keeps the previous value instead of silently becoming 0
+        target: tRaw === '' ? (it ? Number(it.target)||0 : 1) : Math.max(0, parseInt(tRaw)||0),
+        note:$('fNote').value.trim(),
+        inventoryMode: mode,
+        kitchenZone: mode==='kitchen' ? $('fZone').value : null,
+      };
+
+      // family: match an existing family by exact name, else create a new
+      // one — never silently merges this item into an unrelated family
+      if (famNameInput){
+        const existingFam = getFamilies().find(f => f.name.toLowerCase() === famNameInput.toLowerCase());
+        if (existingFam){ data.familyId = existingFam.id; data.familyName = existingFam.name; }
+        else { data.familyId = (it && it.familyId) ? it.familyId : uid(); data.familyName = famNameInput; }
+      } else {
+        data.familyId = null; data.familyName = '';
+      }
+
+      if (photoChanged){
+        data.photo = pendingPhoto;
+        if (!pendingPhoto) data.photoUrl = '';
+      }
+      let targetItem;
+      if (it){
+        if (it.qty !== data.qty) logEvent('CORRECTION', it.id, data.qty - it.qty, 'עריכה ידנית');
+        Object.assign(it, data);
+        targetItem = it;
+      } else {
+        const n = {id:uid(), ...data, createdAt:Date.now()};
+        S.items.push(n);
+        logEvent('PURCHASE', n.id, data.qty, 'מוצר חדש');
+        targetItem = n;
+      }
+      closeSheet(); save(); toast(it?'המוצר עודכן':'המוצר נוסף');
+      if (photoChanged && pendingPhoto) uploadItemPhoto(targetItem, pendingPhoto);
+    };
+    if (it) $('fDel').onclick = () => {
+      if (!confirm(`למחוק את "${it.name}"?`)) return;
+      S.items = S.items.filter(x=>x.id!==it.id);
+      logEvent('DELETE', it.id, -(Number(it.qty)||0), it.name);
+      closeSheet(); save(); toast('נמחק');
+    };
+    setTimeout(()=>{ const f=$('fName'); if (f) f.focus(); }, 60);
+  });
+}
+
+/* ---------- settings (Phase 8) ---------- */
+function openSettings(){
+  const cfg = localStorage.getItem(LS_FB) || '';
+  const gkey = localGeminiKey();
+  const aiState = gkey ? 'מפתח מקומי מוגדר' : 'דרך השרת';
+
+  sheet(`
+    <h2>הגדרות</h2>
+
+    <div class="setrow">
+      <div class="ic">${iconSvg('robot',18)}</div>
+      <div class="grow"><div class="t">AI</div><div class="s">${esc(aiState)}</div></div>
+    </div>
+    <div class="setrow">
+      <div class="ic">${iconSvg('sync',18)}</div>
+      <div class="grow"><div class="t">סנכרון</div><div class="s">${esc($('syncTxt').textContent)}</div></div>
+    </div>
+    <div class="setrow" style="flex-direction:column;align-items:stretch">
+      <div class="row"><div class="ic">${iconSvg('box',18)}</div>
+        <div class="grow"><div class="t">נתונים</div><div class="s">גיבוי ושחזור מלא</div></div></div>
+      <div class="two" style="margin-top:10px">
+        <button class="btn g" id="expBtn">ייצוא JSON</button>
+        <button class="btn g" id="impBtn">ייבוא JSON</button>
+      </div>
+      <input type="file" id="impFile" accept=".json,application/json" class="hidden">
+    </div>
+
+    <details class="adv">
+      <summary>מתקדם</summary>
+
+      <div style="margin-top:10px;font-weight:700;font-size:13.5px">מפתח Gemini (זמני, מקומי)</div>
+      <p class="muted" style="margin-bottom:8px">
+        פתרון ביניים: כשמוגדר, פעולות ה-AI פונות ישירות מהדפדפן הזה ל-Gemini, בלי תלות בשרת.
+        נשמר רק במכשיר הזה, לא נכלל בגיבוי JSON ולא מסתנכרן. מי שניגש לדפדפן יכול לחלץ אותו.
+      </p>
+      ${gkey
+        ? `<div class="row" style="background:var(--surface-2);border-radius:10px;padding:9px 11px;margin-bottom:8px">
+             <span class="grow" style="font-size:13px;direction:ltr;text-align:right">מוגדר · מסתיים ב-${esc(gkey.slice(-4))}</span>
+           </div>
+           <button class="btn r" id="gkeyClear">הסרת המפתח</button>`
+        : `<div class="field"><input id="gkeyInput" type="password" placeholder="הדבק מפתח Gemini" style="direction:ltr;text-align:left"></div>
+           <button class="btn g" id="gkeySave">שמירה במכשיר זה</button>`}
+
+      <div style="margin-top:20px;font-weight:700;font-size:13.5px">ניקוי מלאי</div>
+      <p class="muted" style="margin-bottom:8px">בדיקה חד-פעמית של כל המלאי מול עצמו, למקרה שאותו מוצר נכנס פעמיים בשמות שונים.</p>
+      <button class="btn g" id="dedupeBtn">חפש כפילויות</button>
+
+      <div style="margin-top:20px;font-weight:700;font-size:13.5px">סנכרון Firebase</div>
+      <p class="muted" style="margin-bottom:8px">
+        צור פרויקט ב-console.firebase.google.com, הפעל Firestore ו-Anonymous Authentication,
+        והדבק כאן את אובייקט ה-config. האפליקציה עובדת מצוין גם בלי זה.
+      </p>
+      <div class="field"><textarea id="fbCfg" rows="6" placeholder='{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}' style="font-family:ui-monospace,monospace;font-size:11.5px;direction:ltr;text-align:left">${esc(cfg)}</textarea></div>
+      <button class="btn a" id="fbSave">שמירה והתחברות</button>
+      ${cfg?`<button class="btn g" id="fbOff" style="margin-top:8px">ניתוק וחזרה למצב מקומי</button>`:''}
+
+      <div style="margin-top:20px;font-weight:700;font-size:13.5px">אבחון</div>
+      <p class="muted">גרסת סכמה ${S.meta.schemaVersion||0} · ${S.items.length} מוצרים · ${S.events.length} אירועים רשומים (${MAX_EVENTS} אחרונים נשמרים)</p>
+    </details>
+
+    <button class="btn g" id="sClose" style="margin-top:18px">סגירה</button>
+  `, () => {
+    $('sClose').onclick = closeSheet;
+    $('expBtn').onclick = exportJSON;
+    $('impBtn').onclick = () => $('impFile').click();
+    $('impFile').onchange = importJSON;
+    if ($('gkeySave')) $('gkeySave').onclick = () => {
+      const v = $('gkeyInput').value.trim();
+      if (!v) return toast('הדבק מפתח קודם');
+      localStorage.setItem(LS_GKEY, v);
+      toast('נשמר במכשיר זה');
+      closeSheet(); openSettings();
+    };
+    if ($('gkeyClear')) $('gkeyClear').onclick = () => {
+      localStorage.removeItem(LS_GKEY);
+      toast('המפתח הוסר');
+      closeSheet(); openSettings();
+    };
+    $('dedupeBtn').onclick = openDedupe;
+    $('fbSave').onclick = () => {
+      const raw = $('fbCfg').value.trim();
+      if (!raw) return toast('הדבק config');
+      try { const p = JSON.parse(raw); if(!p.projectId) throw 0; }
+      catch(e){ return toast('ה-config אינו JSON תקין'); }
+      localStorage.setItem(LS_FB, raw);
+      closeSheet(); initFirebase();
+    };
+    if ($('fbOff')) $('fbOff').onclick = () => {
+      localStorage.removeItem(LS_FB); closeSheet();
+      setSync('off','מקומי בלבד'); toast('נותק — הנתונים נשארו מקומית');
+    };
+  });
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `home-os-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+  toast('הגיבוי ירד');
+}
+
+/* imports pass through the exact same migrateState() as local load and
+   Firebase snapshots — a backup from before schema v2 loads in safely */
+function importJSON(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const p = JSON.parse(ev.target.result);
+      const items = p.items || (Array.isArray(p) ? p : null);
+      if (!Array.isArray(items)) return toast('קובץ לא תקין');
+      if (S.items.length && !confirm(`לייבא ${items.length} מוצרים ולהחליף את ${S.items.length} הקיימים?`)) return;
+
+      let incoming = {
+        items: items.map(i => ({
+          id:i.id||uid(), name:i.name||'ללא שם', brand:i.brand||'',
+          spaceId:i.spaceId||'bathroom', catId:i.catId||i.categoryId||'grooming',
+          qty:Number(i.qty)||0, target:Number(i.target)|| (Number(i.qty)||1), note:i.note||'',
+          photo:i.photo||'', photoUrl:i.photoUrl||'', createdAt:i.createdAt||Date.now(),
+          inventoryMode:i.inventoryMode, kitchenZone:i.kitchenZone,
+          familyId:i.familyId, familyName:i.familyName, variantName:i.variantName
+        })),
+        spaces: (p.spaces && p.spaces.length) ? p.spaces.filter(x=>x.id!=='all').map(x=>({id:x.id,name:x.name,emoji:x.emoji||'📦'})) : S.spaces,
+        cats:   (p.cats||p.categories) ? (p.cats||p.categories).filter(x=>x.id!=='all').map(x=>({id:x.id,name:x.name,emoji:x.emoji||'📦'})) : S.cats,
+        extras: p.extras || [],
+        events: p.events || [],
+        meta:   p.meta || {}
+      };
+      incoming = migrateState(incoming);
+      S.items = incoming.items; S.spaces = incoming.spaces; S.cats = incoming.cats;
+      S.extras = incoming.extras; S.events = incoming.events; S.meta = incoming.meta;
+      closeSheet(); save(); toast(`${S.items.length} מוצרים יובאו`);
+    } catch(err){ toast('שגיאה בקריאת הקובץ'); }
+  };
+  r.readAsText(f); e.target.value = '';
+}
+
+/* ---------- Firebase (lazy, optional) ----------
+   Firestore documents are capped around 1MB, so base64 photos never go
+   into the synced doc — only the local copy. When Storage is wired up,
+   uploadItemPhoto() pushes the actual bytes there and only a short URL
+   string rides along in the synced document. */
+let fb = null, remoteWrite = null, syncing = false;
+
+function setSync(state, txt){
+  $('syncDot').className = 'dot' + (state==='on'?' on':state==='err'?' err':'');
+  $('syncTxt').textContent = txt;
+}
+
+async function initFirebase(){
+  const raw = localStorage.getItem(LS_FB);
+  if (!raw) return setSync('off','מקומי בלבד');
+  setSync('off','מתחבר…');
+  try {
+    const cfg = JSON.parse(raw);
+    const V = 'https://www.gstatic.com/firebasejs/10.12.5/';
+    const [app, auth, fs, st] = await Promise.all([
+      import(V+'firebase-app.js'), import(V+'firebase-auth.js'),
+      import(V+'firebase-firestore.js'), import(V+'firebase-storage.js')
+    ]);
+    const a = app.initializeApp(cfg);
+    const au = auth.getAuth(a);
+    const cred = await auth.signInAnonymously(au);
+    const db = fs.getFirestore(a);
+    const ref = fs.doc(db, 'homeos', cred.user.uid);
+    const storage = st.getStorage(a);
+    fb = {fs, ref, st, storage, uid: cred.user.uid};
+
+    remoteWrite = () => fs.setDoc(ref, JSON.parse(JSON.stringify({
+      // photo (base64) stays local-only — only the Storage URL is synced
+      items: S.items.map(({photo, ...rest}) => rest),
+      spaces:S.spaces, cats:S.cats, extras:S.extras,
+      events:S.events.slice(-200), meta:S.meta
+    })), {merge:false}).catch(()=>setSync('err','שגיאת סנכרון'));
+
+    fs.onSnapshot(ref, snap => {
+      const d = snap.data();
+      if (!d) { remoteWrite(); return; }
+      if ((d.meta?.updatedAt||0) > (S.meta.updatedAt||0)) {
+        const migrated = migrateState(d); // a remote doc from an older session may pre-date schema v2
+        const photoCache = {};
+        S.items.forEach(i => { if (i.photo) photoCache[i.id] = i.photo; });
+        S = Object.assign(S, migrated);
+        S.items = (S.items||[]).map(i => photoCache[i.id] ? {...i, photo:photoCache[i.id]} : i);
+        localStorage.setItem(LS_DATA, JSON.stringify(S));
+        render(); toast('סונכרן ממכשיר אחר');
+      }
+      setSync('on','מסונכרן');
+    }, () => setSync('err','אין הרשאה ל-Firestore'));
+
+    setSync('on','מסונכרן');
+  } catch(e){
+    console.error(e);
+    setSync('err','החיבור נכשל — עובד מקומית');
+  }
+}
+function pushRemote(){ if (remoteWrite) remoteWrite(); }
+
+/* uploads the compressed photo to Firebase Storage and records its URL.
+   Fires after the item is already saved locally, so a slow network or a
+   missing Storage setup never costs the user their item — only the
+   cross-device copy of the photo. */
+async function uploadItemPhoto(item, dataUrl){
+  if (!fb || !fb.storage) return;
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `homeos/${fb.uid}/items/${item.id}.jpg`;
+    const sref = fb.st.ref(fb.storage, path);
+    await fb.st.uploadBytes(sref, blob, {contentType:'image/jpeg'});
+    item.photoUrl = await fb.st.getDownloadURL(sref);
+    save();
+  } catch(e){
+    console.error(e);
+    toast('התמונה נשמרה מקומית, אך ההעלאה לענן נכשלה');
+  }
+}
+
+/* ============================================================
+   AI HUB CLIENT
+   Two ways to reach Gemini: the server proxy at /api/ai-hub (primary),
+   or straight from this browser using a device-local key saved in
+   Settings -> Advanced (fallback, see callGeminiDirect below). Both
+   paths return the same shape of result to the rest of the app.
+   ============================================================ */
+const AI_ENDPOINT = '/api/ai-hub';
+const MAX_SHOTS = 4;
+let camStream = null, shots = [];
+/* which mode new items from the current scan/ask session should default
+   to — inferred from whichever tab the user was on when they triggered it */
+let aiContextMode = 'supply';
+
+function stopCam(){
+  if (camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+}
+
+async function openScanner(){
+  shots = [];
+  aiContextMode = UI.tab === 'kitchen' ? 'kitchen' : 'supply';
+  sheet(`
+    <h2>סריקת ארון</h2>
+    <p class="muted" style="margin-bottom:10px">
+      צלם עד ${MAX_SHOTS} תמונות של המדף. התמונות לא נשמרות בטלפון ולא במסד הנתונים —
+      הן נשלחות לניתוח ונמחקות. שום דבר לא נכנס למלאי לפני אישור שלך.
+    </p>
+    <video id="cam" autoplay playsinline muted></video>
+    <button class="shutter" id="snap" aria-label="צלם"></button>
+    <div class="shots" id="shots"></div>
+    <button class="btn a" id="analyze" style="margin-top:12px">נתח <span id="nShots"></span></button>
+    <button class="btn g" id="camClose" style="margin-top:8px">ביטול</button>
+    <div id="camErr" class="muted" style="margin-top:10px;text-align:center"></div>
+  `, async () => {
+    $('camClose').onclick = () => { stopCam(); closeSheet(); };
+    $('snap').onclick = snap;
+    $('analyze').onclick = analyze;
+    updateShots();
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:{ideal:'environment'}, width:{ideal:1920} }, audio:false
+      });
+      $('cam').srcObject = camStream;
+    } catch(err){
+      $('cam').classList.add('hidden'); $('snap').classList.add('hidden');
+      $('camErr').textContent = location.protocol === 'https:' || location.hostname === 'localhost'
+        ? 'אין גישה למצלמה. אשר את ההרשאה בהגדרות הדפדפן.'
+        : 'המצלמה דורשת HTTPS.';
+    }
+  });
+}
+
+function snap(){
+  if (shots.length >= MAX_SHOTS) return toast(`מקסימום ${MAX_SHOTS} תמונות`);
+  const v = $('cam');
+  if (!v.videoWidth) return;
+  const max = 1024;
+  const scale = Math.min(1, max / Math.max(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * scale);
+  c.height = Math.round(v.videoHeight * scale);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  shots.push(c.toDataURL('image/jpeg', 0.75));
+  updateShots();
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function updateShots(){
+  const el = $('shots'); if(!el) return;
+  el.innerHTML = shots.map((s,i)=>
+    `<figure><img src="${s}" alt=""><button data-shot="${i}">×</button></figure>`).join('');
+  el.querySelectorAll('[data-shot]').forEach(b => b.onclick = () => {
+    shots.splice(Number(b.dataset.shot),1); updateShots();
+  });
+  $('nShots').textContent = shots.length ? `(${shots.length})` : '';
+  $('analyze').style.opacity = shots.length ? '1' : '.45';
+}
+
+/* ---------- optional local Gemini key (interim — until there's a real backend) ---------- */
+const LS_GKEY = 'homeos_gkey';
+function localGeminiKey(){ return (localStorage.getItem(LS_GKEY) || '').trim(); }
+
+async function callGeminiDirect(prompt, imagesB64, schema, key, model){
+  const parts = [];
+  if (imagesB64) imagesB64.forEach(data => parts.push({ inline_data:{ mime_type:'image/jpeg', data } }));
+  parts.push({ text: prompt });
+  const payload = {
+    contents:[{ role:'user', parts }],
+    generationConfig:{ temperature:0.1, responseMimeType:'application/json', responseSchema:schema },
+    safetySettings:[]
+  };
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model||'gemini-2.5-flash'}:generateContent`;
+  const res = await fetch(url, {
+    method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok){
+    const t = await res.text().catch(()=>'');
+    throw new Error(`Gemini ${res.status}: ${t.slice(0,140)}`);
+  }
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
+  try { return JSON.parse(text); }
+  catch { throw new Error('תשובת המודל לא הייתה JSON תקין'); }
+}
+
+/* same prompt + schema as src/ai-hub.js's scan_shelf task, kept in sync by hand */
+function scanShelfPrompt(space, cats, catalog){
+  return [
+    'You are an inventory scanner for a household stock-tracking app. The user photographed',
+    'a shelf, cabinet or drawer. Identify every distinct consumer product you can see.',
+    '',
+    'Rules:',
+    '- Count identical products as one entry with qty = number of units visible.',
+    '- Read brand names from labels when legible. Hebrew and English labels both occur.',
+    '- Write "name" as the generic product type in Hebrew (שמפו, מרכך, נוזל כלים, קפה טחון),',
+    '  including the flavour/variant/scent when it is printed on the package (e.g.',
+    '  "קפה נמס בטעם וניל", not just "קפה נמס"). A vague name is worse than a specific one.',
+    '- Write "brand" in its original script as printed on the package. Empty string if unreadable.',
+    '- Skip anything that is not a stockable consumer product: furniture, fixtures, towels,',
+    '  electrical outlets, the wall, the shelf itself, decorations, plants.',
+    '- Do NOT guess at products that are hidden, out of focus, or only partly visible.',
+    '  Under-reporting is much better than inventing items.',
+    '',
+    space ? `The user is currently viewing the space: "${space}".` : '',
+    '',
+    'Assign each item a "catId" from this exact list (use the id, never the name):',
+    ...cats.map(c => `  ${c.id} = ${c.name}`),
+    '',
+    catalog.length
+      ? [
+          'CRITICAL — matching against existing stock:',
+          'The user already has these items in stock. Before treating something as a new product,',
+          'check hard whether it is actually one of these — same product, possibly photographed at a',
+          'different angle or under different lighting than when it was first added. Prefer matching',
+          'over creating a duplicate whenever you are reasonably confident, even if you cannot read',
+          'every character on the label. When you do set "matchId": copy that item\'s "name" and',
+          '"brand" back EXACTLY character-for-character from this list below — do not rephrase,',
+          'reorder, add, or drop words, even if your own reading of the label differs slightly.',
+          'Consistent naming across scans is what keeps the same product from being re-added as a',
+          'second, separate item every time it gets photographed again.',
+          'If genuinely no existing item matches, set matchId to an empty string.',
+          ...catalog.map(i => `  ${i.id} = ${i.name}${i.brand ? ' / ' + i.brand : ''}`)
+        ].join('\n')
+      : 'The user has no existing stock. Set matchId to an empty string for every item.',
+    '',
+    'Return JSON only.'
+  ].join('\n');
+}
+const SCAN_SCHEMA = {
+  type:'OBJECT', properties:{ items:{ type:'ARRAY', items:{ type:'OBJECT', properties:{
+    name:{type:'STRING'}, brand:{type:'STRING'}, qty:{type:'INTEGER'}, catId:{type:'STRING'}, matchId:{type:'STRING'}
+  }, required:['name','qty','catId'] } } }, required:['items']
+};
+
+async function scanShelfDirect(images, space, cats, catalog, key){
+  const prompt = scanShelfPrompt(space, cats, catalog);
+  const parsed = await callGeminiDirect(prompt, images, SCAN_SCHEMA, key, null);
+  const catIds = cats.map(c=>c.id), validIds = new Set(catalog.map(i=>i.id));
+  return (parsed.items || [])
+    .filter(i => i && typeof i.name === 'string' && i.name.trim())
+    .slice(0, 60)
+    .map(i => ({
+      name:String(i.name).trim().slice(0,80), brand:String(i.brand||'').trim().slice(0,60),
+      qty:Math.min(99, Math.max(0, parseInt(i.qty)||1)),
+      catId: catIds.includes(i.catId) ? i.catId : (catIds[0]||''),
+      matchId: validIds.has(i.matchId) ? i.matchId : ''
+    }));
+}
+
+async function analyze(){
+  if (!shots.length) return toast('צלם לפחות תמונה אחת');
+  const btn = $('analyze');
+  btn.innerHTML = '<span class="spin"></span> מנתח…';
+  btn.disabled = true;
+  const gkey = localGeminiKey();
+  try {
+    let items;
+    if (gkey){
+      items = await scanShelfDirect(
+        shots.map(s => s.split(',')[1]),
+        UI.space === 'all' ? null : (spaceOf(UI.space)||{}).name,
+        S.cats.map(c => ({id:c.id, name:c.name})),
+        S.items.map(i => ({id:i.id, name:i.name, brand:i.brand||''})),
+        gkey
+      );
+    } else {
+      const res = await fetch(AI_ENDPOINT, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          task: 'scan_shelf',
+          images: shots.map(s => s.split(',')[1]),
+          space: UI.space === 'all' ? null : (spaceOf(UI.space)||{}).name,
+          cats: S.cats.map(c => ({id:c.id, name:c.name})),
+          catalog: S.items.map(i => ({id:i.id, name:i.name, brand:i.brand||''}))
+        })
+      });
+      if (!res.ok) throw new Error(res.status === 404
+        ? 'ה-Function לא נמצאה — פרוסה? או הגדר מפתח Gemini מקומי ב-⚙️'
+        : (await res.text()).slice(0,140));
+      items = (await res.json()).items || [];
+    }
+    stopCam();
+    openStaging(items);
+  } catch(err){
+    btn.disabled = false; btn.innerHTML = 'נסה שוב';
+    $('camErr').textContent = 'הניתוח נכשל: ' + err.message;
+  }
+}
+
+function dedupeCatalogPrompt(catalog){
+  return [
+    'You are reviewing a household inventory app\'s product list for duplicate entries —',
+    'the same physical product that got added to the list more than once, usually because',
+    'it was named slightly differently each time (a flavour word dropped, brand casing',
+    'differs, extra descriptive text in parentheses, singular vs plural, etc).',
+    '',
+    'Group together only items you are reasonably confident are the exact same product.',
+    'Different scents, flavours, sizes, or variants of the same brand are NOT duplicates',
+    '(e.g. "דאודורנט AXE וניל" and "דאודורנט AXE קרמל" must stay separate). When genuinely',
+    'unsure, leave the item out of any group rather than guessing.',
+    '',
+    'Each group needs 2 or more item ids and a short reason in Hebrew explaining the match.',
+    'Do not include an item in more than one group. Items with no duplicate should not',
+    'appear anywhere in the output.',
+    '',
+    'Inventory (id = name / brand / current qty):',
+    ...catalog.map(i => `  ${i.id} = ${i.name}${i.brand ? ' / ' + i.brand : ''} / qty ${Number(i.qty)||0}`),
+    '',
+    'Return JSON only.'
+  ].join('\n');
+}
+const DEDUPE_SCHEMA = {
+  type:'OBJECT', properties:{ groups:{ type:'ARRAY', items:{ type:'OBJECT', properties:{
+    ids:{type:'ARRAY', items:{type:'STRING'}}, reason:{type:'STRING'}
+  }, required:['ids','reason'] } } }, required:['groups']
+};
+
+async function dedupeCatalogDirect(catalog, key){
+  if (catalog.length < 2) return [];
+  const parsed = await callGeminiDirect(dedupeCatalogPrompt(catalog), null, DEDUPE_SCHEMA, key, null);
+  const validIds = new Set(catalog.map(i=>i.id));
+  const seen = new Set(), groups = [];
+  for (const g of (parsed.groups || [])){
+    const ids = [...new Set((g.ids||[]).filter(id => validIds.has(id) && !seen.has(id)))];
+    if (ids.length < 2) continue;
+    ids.forEach(id=>seen.add(id));
+    groups.push({ ids, reason:String(g.reason||'').trim().slice(0,200) });
+  }
+  return groups;
+}
+
+/* ---------- client-side duplicate guard ----------
+   The model's own matchId is a judgment call against a text list — this is
+   a second, independent, free check: plain token overlap. It only ever
+   *suggests*; nothing merges without an explicit tap. Also the basis for
+   family-name suggestions in openItem (same similarity(), different use). */
+function normTokens(s){
+  return (s||'').toLowerCase()
+    .replace(/[()׳"'.,\-–]/g,' ')
+    .split(/\s+/).filter(Boolean);
+}
+function similarity(nameA, brandA, nameB, brandB){
+  const a = new Set(normTokens(nameA + ' ' + (brandA||'')));
+  const b = new Set(normTokens(nameB + ' ' + (brandB||'')));
+  if (!a.size || !b.size) return 0;
+  const inter = [...a].filter(t => b.has(t)).length;
+  const union = new Set([...a, ...b]).size;
+  let score = union ? inter / union : 0;
+  if (brandA && brandB && brandA.toLowerCase().trim() === brandB.toLowerCase().trim()) score += 0.15;
+  return score;
+}
+function fuzzyCandidate(name, brand, excludeId){
+  let best = null, bestScore = 0;
+  S.items.forEach(it => {
+    if (it.id === excludeId) return;
+    const score = similarity(name, brand, it.name, it.brand);
+    if (score > bestScore){ bestScore = score; best = it; }
+  });
+  return bestScore >= 0.5 ? {item:best, score:bestScore} : null;
+}
+function findDuplicatePairs(){
+  const pairs = [];
+  for (let i = 0; i < S.items.length; i++){
+    for (let j = i + 1; j < S.items.length; j++){
+      const a = S.items[i], b = S.items[j];
+      const score = similarity(a.name, a.brand, b.name, b.brand);
+      if (score >= 0.5) pairs.push({a, b, score, reason:null});
+    }
+  }
+  return pairs.sort((x,y) => y.score - x.score);
+}
+
+/* ---------- catalog-wide cleanup: nothing merges without an explicit tap ---------- */
+let dedupePairs = [];
+
+function openDedupe(){
+  dedupePairs = findDuplicatePairs();
+  renderDedupe();
+}
+
+function renderDedupe(){
+  sheet(`
+    <h2>ניקוי כפילויות</h2>
+    <p class="muted" id="ddCount" style="margin-bottom:10px"></p>
+    <div id="ddList"></div>
+    <button class="btn g" id="ddAi" style="margin-top:12px">בדוק גם עם AI (בדיקה עמוקה יותר)</button>
+    <button class="btn a" id="ddDone" style="margin-top:8px">סיום</button>
+  `, () => {
+    $('ddDone').onclick = closeSheet;
+    $('ddAi').onclick = runAiDedupe;
+    paintDedupeList();
+  });
+}
+
+function paintDedupeList(){
+  const list = $('ddList'), count = $('ddCount');
+  if (!list) return;
+  if (!dedupePairs.length){
+    count.textContent = 'לא נמצאו זוגות חשודים בבדיקה המקומית.';
+    list.innerHTML = '';
+    return;
+  }
+  count.textContent = `${dedupePairs.length} זוגות אפשריים — תבחר איזה שם נשאר, או שאלה אינם זהים.`;
+  list.innerHTML = dedupePairs.map((p,i) => `
+    <div class="group" style="margin-bottom:8px">
+      <div style="padding:10px 11px">
+        ${p.reason ? `<div class="muted" style="margin-bottom:6px">🤖 ${esc(p.reason)}</div>` : ''}
+        <div class="two">
+          <button class="btn g" data-keep="${i}:a" style="text-align:right;font-size:12.5px;padding:9px">
+            ✓ ${esc(p.a.name)}<br><span class="muted">${esc(p.a.brand||'')} · יש ${p.a.qty}</span>
+          </button>
+          <button class="btn g" data-keep="${i}:b" style="text-align:right;font-size:12.5px;padding:9px">
+            ✓ ${esc(p.b.name)}<br><span class="muted">${esc(p.b.brand||'')} · יש ${p.b.qty}</span>
+          </button>
+        </div>
+        <button class="btn" data-skip="${i}" style="margin-top:6px;background:transparent;color:var(--text-3);font-size:12px;padding:6px">אלה לא אותו מוצר</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('[data-keep]').forEach(btn => btn.onclick = () => {
+    const [idx, side] = btn.dataset.keep.split(':');
+    const p = dedupePairs[Number(idx)];
+    mergeDuplicates(side === 'a' ? p.a.id : p.b.id, side === 'a' ? p.b.id : p.a.id);
+  });
+  list.querySelectorAll('[data-skip]').forEach(btn => btn.onclick = () => {
+    dedupePairs.splice(Number(btn.dataset.skip), 1);
+    paintDedupeList();
+  });
+}
+
+function mergeDuplicates(keepId, dropId){
+  const keep = S.items.find(x => x.id === keepId);
+  const drop = S.items.find(x => x.id === dropId);
+  if (!keep || !drop){
+    dedupePairs = dedupePairs.filter(p => p.a.id !== dropId && p.b.id !== dropId);
+    paintDedupeList();
+    return;
+  }
+  const addQty = Number(drop.qty) || 0;
+  keep.qty = (Number(keep.qty) || 0) + addQty;
+  logEvent('CORRECTION', keep.id, addQty, `מוזג עם "${drop.name}"`);
+  logEvent('DELETE', drop.id, -addQty, drop.name);
+  S.items = S.items.filter(x => x.id !== dropId);
+  dedupePairs = dedupePairs.filter(p => p.a.id !== dropId && p.b.id !== dropId);
+  save();
+  toast(`מוזג לתוך "${keep.name}"`);
+  paintDedupeList();
+}
+
+async function runAiDedupe(){
+  const btn = $('ddAi');
+  btn.innerHTML = '<span class="spin"></span> בודק…';
+  btn.disabled = true;
+  const gkey = localGeminiKey();
+  try {
+    const catalog = S.items.map(i => ({id:i.id, name:i.name, brand:i.brand||'', qty:i.qty}));
+    let groups;
+    if (gkey){
+      groups = await dedupeCatalogDirect(catalog, gkey);
+    } else {
+      const res = await fetch(AI_ENDPOINT, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ task: 'dedupe_catalog', catalog })
+      });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `שגיאה ${res.status}`);
+      groups = (await res.json()).groups || [];
+    }
+    const existing = new Set(dedupePairs.map(p => [p.a.id,p.b.id].sort().join('|')));
+    let added = 0;
+    groups.forEach(g => {
+      const ids = g.ids.filter(id => S.items.some(x=>x.id===id));
+      for (let k = 1; k < ids.length; k++){
+        const key = [ids[0], ids[k]].sort().join('|');
+        if (existing.has(key)) continue;
+        const a = S.items.find(x=>x.id===ids[0]), b = S.items.find(x=>x.id===ids[k]);
+        if (!a || !b) continue;
+        existing.add(key);
+        dedupePairs.push({a, b, score:1, reason:g.reason||null});
+        added++;
+      }
+    });
+    btn.disabled = false; btn.innerHTML = 'בדוק גם עם AI (בדיקה עמוקה יותר)';
+    toast(added ? `${added} זוגות נוספים נמצאו` : 'ה-AI לא מצא כפילויות נוספות');
+    paintDedupeList();
+  } catch(err){
+    btn.disabled = false; btn.innerHTML = 'בדוק גם עם AI (בדיקה עמוקה יותר)';
+    toast('הבדיקה נכשלה: ' + err.message);
+  }
+}
+
+/* ---------- staging: nothing is saved until confirmed ---------- */
+function openStaging(rows){
+  if (!rows.length){
+    sheet(`<h2>לא זוהו מוצרים</h2>
+      <p class="muted" style="margin:8px 0 14px">נסה תאורה טובה יותר, או צלם מקרוב יותר את התוויות.</p>
+      <button class="btn a" id="again">צילום חוזר</button>
+      <button class="btn g" id="cls" style="margin-top:8px">סגירה</button>`,
+      () => { $('again').onclick = openScanner; $('cls').onclick = closeSheet; });
+    return;
+  }
+  const spOpts = S.spaces.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  const defSpace = UI.space === 'all' ? S.spaces[0].id : UI.space;
+
+  sheet(`
+    <h2>אימות סריקה</h2>
+    <p class="muted" style="margin-bottom:6px">
+      ${rows.length} פריטים זוהו. תקן כמויות, בטל מה שלא נכון, ורק אז אשר.
+    </p>
+    <div>${rows.map((r,i)=>{
+      const m = r.matchId ? S.items.find(x=>x.id===r.matchId) : null;
+      const fz = !m ? fuzzyCandidate(r.name, r.brand, null) : null;
+      return `<div class="srow" data-i="${i}">
+        <div class="row">
+          <label class="row grow" style="gap:7px">
+            <input type="checkbox" class="stKeep" checked style="width:18px;height:18px;flex:none">
+            <span class="grow trunc" style="font-weight:600;font-size:13.5px">${esc(r.name)}</span>
+          </label>
+          <span class="pill ${m?'upd':'new'}" data-pill>${m?'עדכון':'חדש'}</span>
+        </div>
+        ${fz ? `<div class="row" style="background:var(--warn-soft);border-radius:8px;padding:6px 8px;margin-top:6px;gap:6px" data-fzwarn>
+          <span style="font-size:12px;color:var(--warning)" class="grow">⚠ אולי כבר קיים: "${esc(fz.item.name)}" (יש ${fz.item.qty} בבית)</span>
+          <button type="button" class="chip on" data-fzaccept="${esc(fz.item.id)}" style="padding:4px 9px;font-size:11.5px">זה אותו מוצר</button>
+        </div>` : ''}
+        <div class="two">
+          <input class="stName" value="${esc(r.name)}" placeholder="שם">
+          <input class="stBrand" value="${esc(r.brand||'')}" placeholder="מותג">
+        </div>
+        <div class="two">
+          <input class="stQty" type="number" inputmode="numeric" min="0" value="${Number(r.qty)||1}" placeholder="כמות">
+          <select class="stCat">${S.cats.map(c=>
+            `<option value="${esc(c.id)}" ${c.id===(m?m.catId:r.catId)?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+        </div>
+        <input type="hidden" class="stMatch" value="${esc(r.matchId||'')}">
+      </div>`;
+    }).join('')}</div>
+
+    <div class="field" style="margin-top:14px"><label>שייך את החדשים לחלל</label>
+      <select id="stSpace">${spOpts}</select></div>
+    <button class="btn a" id="stApply">אישור והוספה למלאי</button>
+    <button class="btn g" id="stCancel" style="margin-top:8px">ביטול הכל</button>
+  `, () => {
+    $('stSpace').value = defSpace;
+    $('stCancel').onclick = closeSheet;
+    document.querySelectorAll('[data-fzaccept]').forEach(btn => btn.onclick = () => {
+      const row = btn.closest('.srow');
+      const matched = S.items.find(x => x.id === btn.dataset.fzaccept);
+      if (!matched) return;
+      row.querySelector('.stMatch').value = matched.id;
+      row.querySelector('.stCat').value = matched.catId;
+      const pill = row.querySelector('[data-pill]');
+      pill.textContent = 'עדכון'; pill.className = 'pill upd';
+      row.querySelector('[data-fzwarn]').remove();
+    });
+    $('stApply').onclick = () => {
+      const spaceId = $('stSpace').value;
+      let added = 0, updated = 0;
+      document.querySelectorAll('.srow').forEach(row => {
+        if (!row.querySelector('.stKeep').checked) return;
+        const name  = row.querySelector('.stName').value.trim();
+        if (!name) return;
+        const brand = row.querySelector('.stBrand').value.trim();
+        const qty   = Math.max(0, parseInt(row.querySelector('.stQty').value) || 0);
+        const catId = row.querySelector('.stCat').value;
+        const mid   = row.querySelector('.stMatch').value;
+        const ex    = mid ? S.items.find(x=>x.id===mid) : null;
+        if (ex){
+          const d = qty - (Number(ex.qty)||0);
+          ex.qty = qty; ex.brand = brand || ex.brand; ex.catId = catId;
+          logEvent('CORRECTION', ex.id, d, 'ספירה מסריקה');
+          updated++;
+        } else {
+          const n = {
+            id:uid(), name, brand, spaceId, catId, qty, target:qty||1, note:'',
+            photo:'', photoUrl:'',
+            inventoryMode: aiContextMode,
+            kitchenZone: aiContextMode==='kitchen' ? 'pantry' : null,
+            familyId:null, familyName:'', variantName:'',
+            createdAt:Date.now()
+          };
+          S.items.push(n);
+          logEvent('SCAN', n.id, qty, 'נוסף מסריקה');
+          added++;
+        }
+      });
+      closeSheet(); save();
+      toast(`${added} נוספו · ${updated} עודכנו`);
+    };
+  });
+}
+
+/* ---------- "Ask Home OS" (Phase 9) ----------
+   Free-text Hebrew -> structured proposed operations -> confirmation
+   sheet -> only on explicit approval do the normal mutation/save/event
+   functions run. The AI never touches S directly, in either path. */
+function parseCommandPrompt(text, catalog, cats){
+  return [
+    'You are a household inventory assistant. The user typed a short Hebrew (or mixed',
+    'Hebrew/English) sentence describing something that just happened at home. Turn it',
+    'into a structured list of proposed inventory operations. You NEVER change anything',
+    'yourself — you only propose; the app shows the user a confirmation screen first.',
+    '',
+    'Recognize commands like:',
+    '- "קניתי 3 דאודורנטים של Nivea"   -> increase_qty (or create_item if new), qty 3',
+    '- "נגמר לי החלב"                    -> decrease_qty toward 0 for the matching item',
+    '- "תוסיף קפה לרשימת הקניות"        -> add_shopping_extra',
+    '- "יש לי עוד שני שמפו"              -> increase_qty, qty 2',
+    '',
+    'For each operation:',
+    '- If the product clearly matches something in the existing catalog below, set',
+    '  "itemId" to that id and "name" to that item\'s exact existing name.',
+    '- If it does not match anything existing AND the user clearly means to add it as',
+    '  a tracked product (not just mention it), use action "create_item", itemId empty.',
+    '- For a bare "add X to the list" with no clear existing item, use',
+    '  "add_shopping_extra" instead (itemId empty, action only, no separate item created).',
+    '- Guess "inventoryMode" (supply/kitchen) and "kitchenZone" (pantry/fridge/freezer)',
+    '  only for create_item; leave both empty otherwise.',
+    '- "confidence" is your own 0-1 estimate of how sure you are.',
+    '- Only do arithmetic directly implied by the sentence (e.g. "עוד שניים" = +2).',
+    '  Never invent a quantity the user did not say or clearly imply.',
+    '',
+    'If the sentence has nothing to do with the household inventory, return intent',
+    '"unknown", an empty operations array, and a short honest message explaining that.',
+    '',
+    'Existing catalog (id = name / brand):',
+    catalog.length ? catalog.map(i=>`  ${i.id} = ${i.name}${i.brand?' / '+i.brand:''}`).join('\n') : '  (empty)',
+    '',
+    'Categories (id = name):',
+    cats.map(c=>`  ${c.id} = ${c.name}`).join('\n'),
+    '',
+    `User said: "${text.replace(/"/g,"'")}"`,
+    '',
+    'Return JSON only.'
+  ].join('\n');
+}
+const PARSE_SCHEMA = {
+  type:'OBJECT',
+  properties:{
+    intent:{type:'STRING'}, message:{type:'STRING'},
+    operations:{ type:'ARRAY', items:{ type:'OBJECT', properties:{
+      action:{type:'STRING'}, itemId:{type:'STRING'}, name:{type:'STRING'},
+      qty:{type:'INTEGER'}, inventoryMode:{type:'STRING'}, kitchenZone:{type:'STRING'},
+      confidence:{type:'NUMBER'}
+    }, required:['action','name','qty'] } }
+  },
+  required:['intent','message','operations']
+};
+
+function sanitizeParseResult(parsed, catalog){
+  const validIds = new Set(catalog.map(i=>i.id));
+  const ops = (parsed.operations||[]).slice(0,20).map(o => ({
+    action: String(o.action||'').trim(),
+    itemId: validIds.has(o.itemId) ? o.itemId : '',
+    name: String(o.name||'').trim().slice(0,80),
+    qty: Math.max(0, parseInt(o.qty)||0),
+    inventoryMode: (o.inventoryMode==='kitchen'||o.inventoryMode==='supply') ? o.inventoryMode : '',
+    kitchenZone: ['fridge','pantry','freezer'].includes(o.kitchenZone) ? o.kitchenZone : '',
+    confidence: Math.max(0, Math.min(1, Number(o.confidence)||0))
+  })).filter(o => o.action && o.name);
+  return { intent:String(parsed.intent||'unknown').slice(0,40), message:String(parsed.message||'').slice(0,200), operations:ops };
+}
+
+async function parseCommandDirect(text, catalog, cats, key){
+  const parsed = await callGeminiDirect(parseCommandPrompt(text,catalog,cats), null, PARSE_SCHEMA, key, null);
+  return sanitizeParseResult(parsed, catalog);
+}
+
+async function submitAsk(){
+  const text = $('askInput').value.trim();
+  if (!text) return;
+  $('askInput').value = '';
+  $('askInput').blur();
+  toast('חושב…');
+  const gkey = localGeminiKey();
+  const catalog = S.items.map(i => ({id:i.id, name:i.name, brand:i.brand||''}));
+  const cats = S.cats.map(c => ({id:c.id, name:c.name}));
+  try {
+    let result;
+    if (gkey){
+      result = await parseCommandDirect(text, catalog, cats, gkey);
+    } else {
+      const res = await fetch(AI_ENDPOINT, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ task:'parse_command', text, catalog, cats })
+      });
+      if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `שגיאה ${res.status}`);
+      result = await res.json();
+    }
+    openAskConfirm(result);
+  } catch(err){
+    toast('לא הצלחתי להבין: ' + err.message);
+  }
+}
+
+function opLabel(action){
+  return action==='create_item' ? 'מוצר חדש'
+       : action==='decrease_qty' ? 'שימוש'
+       : action==='add_shopping_extra' ? 'לרשימת קניות'
+       : 'עדכון כמות';
+}
+function opPillClass(action){
+  return action==='create_item' ? 'new' : action==='decrease_qty' ? 'use' : 'upd';
+}
+
+function openAskConfirm(result){
+  if (!result.operations || !result.operations.length){
+    sheet(`<h2>לא הבנתי</h2><p class="muted" style="margin-top:8px">${esc(result.message||'נסה לנסח אחרת')}</p>
+      <button class="btn g" id="ackClose" style="margin-top:14px">סגירה</button>`,
+      () => { $('ackClose').onclick = closeSheet; });
+    return;
+  }
+  sheet(`
+    <h2>אישור</h2>
+    <p class="muted" style="margin-bottom:10px">${esc(result.message||'')}</p>
+    <div>${result.operations.map((op,i)=>{
+      const existing = op.itemId ? S.items.find(x=>x.id===op.itemId) : null;
+      return `<div class="srow" data-i="${i}">
+        <div class="row">
+          <label class="row grow" style="gap:7px">
+            <input type="checkbox" class="opKeep" checked style="width:18px;height:18px;flex:none">
+            <span class="grow trunc" style="font-weight:600;font-size:13.5px">${esc(existing?existing.name:op.name)}</span>
+          </label>
+          <span class="pill ${opPillClass(op.action)}">${opLabel(op.action)}</span>
+        </div>
+        <div class="two">
+          <input class="opQty" type="number" inputmode="numeric" min="0" value="${op.qty||1}">
+          <div class="muted" style="align-self:center">ביטחון: ${Math.round((op.confidence||0)*100)}%</div>
+        </div>
+      </div>`;
+    }).join('')}</div>
+    <button class="btn a" id="askApply" style="margin-top:14px">אישור וביצוע</button>
+    <button class="btn g" id="askCancel" style="margin-top:8px">ביטול</button>
+  `, () => {
+    $('askCancel').onclick = closeSheet;
+    $('askApply').onclick = () => {
+      let n = 0;
+      document.querySelectorAll('.srow').forEach((row,i) => {
+        if (!row.querySelector('.opKeep').checked) return;
+        const qty = Math.max(0, parseInt(row.querySelector('.opQty').value)||0);
+        applyAskOperation(result.operations[i], qty);
+        n++;
+      });
+      closeSheet(); save();
+      toast(n ? `${n} פעולות בוצעו` : 'לא סומן כלום');
+    };
+  });
+}
+
+/* the only place an AI-proposed operation actually touches S — and only
+   after the user tapped "אישור וביצוע" above. Reuses the same mutation
+   shape (logEvent + qty math) as every other path in the app. */
+function applyAskOperation(op, qty){
+  if (op.action === 'add_shopping_extra'){
+    S.extras.push({id:uid(), text:op.name, got:false});
+    return;
+  }
+  let it = op.itemId ? S.items.find(x=>x.id===op.itemId) : null;
+  if (!it && op.action !== 'create_item') op = {...op, action:'create_item'};
+  if (op.action === 'create_item' && !it){
+    it = {
+      id:uid(), name:op.name, brand:'', spaceId:S.spaces[0].id, catId:S.cats[0].id,
+      qty:0, target:Math.max(1, qty), note:'', photo:'', photoUrl:'',
+      inventoryMode: op.inventoryMode || 'supply',
+      kitchenZone: op.inventoryMode==='kitchen' ? (op.kitchenZone||'pantry') : null,
+      familyId:null, familyName:'', variantName:'', createdAt:Date.now()
+    };
+    S.items.push(it);
+  }
+  if (!it) return;
+  if (op.action === 'decrease_qty'){
+    const next = Math.max(0, (Number(it.qty)||0) - qty);
+    logEvent('USED', it.id, next - it.qty, 'פקודה חופשית');
+    it.qty = next;
+  } else {
+    logEvent('PURCHASE', it.id, qty, 'פקודה חופשית');
+    it.qty = (Number(it.qty)||0) + qty;
+  }
+}
+
+function sheet(html, after){
+  $('modals').innerHTML = `<div class="overlay"><div class="sheet">${html}</div></div>`;
+  const ov = document.querySelector('.overlay');
+  ov.onclick = e => { if (e.target === ov) closeSheet(); };
+  if (after) after();
+}
+function closeSheet(){ stopCam(); $('modals').innerHTML = ''; }
+
+/* ---------- events ----------
+   One delegated listener for everything repeated-per-item or per-tab;
+   only elements unique to a single tab's markup get bound directly, in
+   wireTabExtras() (called at the end of every render()). */
+document.addEventListener('click', e => {
+  const t = e.target.closest(
+    '[data-q],[data-edit],[data-sp],[data-ct],[data-tab],[data-zone],' +
+    '[data-fam],[data-kitchen-item],[data-need],[data-xgot],[data-xdel]'
+  );
+  if (!t) return;
+  if (t.dataset.q !== undefined){
+    const it = S.items.find(i=>i.id===t.dataset.q);
+    const d = Number(t.dataset.d);
+    const next = Math.max(0, (Number(it.qty)||0) + d);
+    if (next === it.qty) return;
+    it.qty = next;
+    logEvent(d > 0 ? 'PURCHASE' : 'USED', it.id, d, 'כפתור מהיר');
+    save();
+  } else if (t.dataset.edit !== undefined){ openItem(t.dataset.edit); }
+  else if (t.dataset.tab !== undefined){ UI.tab = t.dataset.tab; UI.q = ''; render(); }
+  else if (t.dataset.zone !== undefined){ UI.zone = t.dataset.zone; render(); }
+  else if (t.dataset.fam !== undefined){ openFamily(t.dataset.fam); }
+  else if (t.dataset.kitchenItem !== undefined){ openKitchenActions(t.dataset.kitchenItem); }
+  else if (t.dataset.need !== undefined){
+    const it = S.items.find(i=>i.id===t.dataset.need); if (it){ it._got = !it._got; render(); }
+  }
+  else if (t.dataset.sp !== undefined){ UI.space = t.dataset.sp; render(); }
+  else if (t.dataset.ct !== undefined){ UI.cat = t.dataset.ct; render(); }
+  else if (t.dataset.xgot !== undefined){
+    const ex = S.extras.find(x=>x.id===t.dataset.xgot); if (ex){ ex.got = !ex.got; save(false); }
+  }
+  else if (t.dataset.xdel !== undefined){
+    S.extras = S.extras.filter(x=>x.id!==t.dataset.xdel); save(false);
+  }
+});
+
+/* static chrome (header, ask bar, tab bar) is never replaced by render(),
+   so these bind once at boot — unlike the tab-specific elements inside #view */
+$('btnSettings').onclick = openSettings;
+$('askSend').onclick = submitAsk;
+$('askInput').onkeydown = e => { if (e.key==='Enter') submitAsk(); };
+$('askCam').onclick = openScanner;
+$('askCam').innerHTML = iconSvg('camera',18);
+$('askSend').innerHTML = iconSvg('send',18);
+document.querySelectorAll('.tabbar button[data-tab]').forEach(b=>{
+  const key = b.dataset.tab;
+  const iconKey = key==='home' ? 'home' : key==='supplies' ? 'bottle' : key==='kitchen' ? 'fridge' : 'cart';
+  b.querySelector('.icon').outerHTML = iconSvg(iconKey, 20);
+});
+
+/* ---------- boot ---------- */
+load(); render(); initFirebase();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
