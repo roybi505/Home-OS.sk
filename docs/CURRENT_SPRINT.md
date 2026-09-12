@@ -4,9 +4,10 @@ Branch: `claude/2-0-5-smart-interim-wcd3gg`
 PR: https://github.com/roybi505/Home-OS.sk/pull/2
 Issue: https://github.com/roybi505/Home-OS.sk/issues/1
 Coordination: `docs/agent-sync/` on `coordination/home-os` (Claude/Codex/Roy
-cross-agent protocol) — task HOME-006, see that section below.
-Status: **HOME-006 implemented — in review** (original 9-item 2.0.5 scope
-below is Done; HOME-006 is Codex's follow-up review pass on top of it — see
+cross-agent protocol) — task HOME-006-R1, see that section below.
+Status: **HOME-006-R1 implemented — in review** (original 9-item 2.0.5 scope
+is Done; HOME-006 was Codex's first follow-up review pass; HOME-006-R1 is
+the revision addressing Codex's CHANGES_REQUESTED findings on HOME-006 — see
 `docs/AI_HANDOFF.md` for what still needs Codex/Roy sign-off)
 
 ## Authoritative scope (verbatim from the approved specification)
@@ -319,3 +320,124 @@ sandbox either) — only its failure-fallback branch was actually exercised.
   own top matches deterministically, which avoids an extra Gemini
   dependency for a task that doesn't otherwise need one. Flagging this as
   a simplification, not an oversight.
+
+**Update:** Codex reviewed commit `20905d8` and returned CHANGES_REQUESTED
+(not the approval), with three legitimate, reproduced bugs. See HOME-006-R1
+below for the fix.
+
+---
+
+# HOME-006-R1 — Codex's CHANGES_REQUESTED revision
+
+Task ID: HOME-006-R1, tracked via `docs/agent-sync/` on `coordination/home-os`
+(full spec/acceptance-evidence in `NEXT.md` there). Codex reviewed HOME-006
+at commit `20905d8352e6d8b74dec78389e8199fbd99a4952` by actually executing
+the extracted functions against synthetic data (not just reading source),
+and found three real bugs. All three are fixed here.
+
+## What was wrong, and the fix
+
+1. **Shopping catalog matching was scoped to the wrong set.** `shoppingMatches()`
+   (the live dropdown) filters out items already on the shopping list —
+   correct for what it's *for* (no point suggesting something already
+   there). The bug: `commitShopAdd()`'s Enter/+ path reused that same
+   filtered result to decide whether a manual entry was warranted. So
+   typing "קפה" when "קפה נמס וניל" was already a shortage found *zero*
+   matches in the filtered set and created a duplicate manual "קפה" entry,
+   even though the catalog match was real — it just happened to already be
+   listed. Fix: a new `catalogMatches()` (full catalog, no listed-status
+   filtering) is what `commitShopAdd()` now decides against; `shoppingMatches()`
+   is now defined in terms of it, filtered, for the dropdown only. One
+   match — whether or not it's already listed — links it via
+   `addShoppingItemRef()`, which already gives the correct "already on the
+   list" feedback. Several matches (even if only one isn't yet listed)
+   asks instead of guessing. Zero matches is the only path that creates
+   manual text.
+2. **A failed lookup and a genuine empty result were the same shape.**
+   `fetchJsonSafe()` collapsed HTTP errors, timeouts, 429s, and malformed
+   JSON all down to `null` — indistinguishable from "the API answered and
+   found nothing." `findProductPhoto()` then returned a plain `{candidates:
+   [], matchType:'none'}` with HTTP 200 regardless of which case it was,
+   and the client cached *that* as a confirmed 30-day negative. Fix:
+   `fetchJsonSafe()` now returns `{status, data}` (`'ok'` / `'rate_limited'`
+   / `'error'`); `findProductPhoto()` tracks whether *any* source actually
+   answered. A genuine empty result (at least one source answered, none had
+   a match) still returns HTTP 200/`matchType:'none'` — legitimately
+   cacheable. An outage returns HTTP 502/`matchType:'unavailable'`; a 429
+   returns HTTP 429/`matchType:'rate_limited'` — both non-2xx, so the
+   client's existing `!res.ok` guard already refuses to cache them (no
+   client-side caching logic needed to change). The photo batch flow now
+   also stops early (no further per-item requests) the moment it hits
+   either error shape, instead of continuing to hammer a struggling
+   endpoint through the rest of the batch — "without repeated requests," as
+   specified, rather than an automatic retry loop.
+3. **A failed offline-copy download left inconsistent state, and downloads
+   were unvalidated.** `applyFoundPhotoToItem()` had no timeout, no MIME
+   check, no size check, and — the actual data-integrity bug — on failure
+   it left the old `item.photo` in place while still overwriting
+   `item.photoUrl`/`item.photoSource` with the new candidate, so
+   `photoSrc()` (which prefers `item.photo`) kept displaying the old image
+   while the metadata claimed a different source. Fixed by splitting into
+   two real outcomes instead of one blurred one: a response that's
+   received but fails validation (wrong content-type, oversized, or
+   redirected off the image-host allowlist — checked against the *final*,
+   post-redirect URL) is a hard **rejection** — nothing about the item
+   changes at all, old photo/photoUrl/photoSource untouched, matching
+   "preserve the previous photo on failed replacement." A request that
+   can't even complete (CORS block, network/timeout) is a legitimate
+   **confirmed online-only selection** — the candidate URL was already
+   server-validated, so `item.photo` is cleared (so `photoSrc()` actually
+   shows the new remote `photoUrl` instead of a stale local one) and
+   `photoUrl`/`photoSource` are set; display and metadata now always agree.
+   Also added: a clickable source-page link (`c.sourceUrl`) next to each
+   candidate's attribution text, satisfying the "expose the source-page
+   link" requirement.
+
+## Tests added
+
+- `tests/shopping-match.test.mjs` (new) — extracts and runs the actual
+  `catalogMatches`/`shoppingMatches`/`addShoppingItemRef`/`commitShopAdd`
+  from `public/index.html` against Codex's exact repro plus the full
+  acceptance-evidence list: already-listed partial match, exact listed
+  match, mixed listed/unlisted ambiguous variants, single unlisted match,
+  zero-match manual fallback. **11/11 passing.**
+- `tests/photo-lookup.test.mjs` (new) — calls the actual exported
+  `handleAiHub()` from `src/ai-hub.js` with a mocked `global.fetch`
+  simulating all-503, all-429, network error, malformed JSON, a genuine
+  empty result, and one-source-down-one-healthy. Confirms failures never
+  come back shaped like HTTP 200 successes, and a healthy source's
+  candidate survives another source's failure. **13/13 passing.**
+- `tests/dedupe.test.mjs` (existing, unchanged) — still 9/9.
+- `npm test` now runs all three.
+
+## What was verified
+
+Playwright (Chromium, mobile viewport, **service workers explicitly
+blocked** — `sw.js`'s network-first-with-cache-fallback behavior was
+intercepting cross-origin fetches and masking the actual fetch outcome
+during the first attempt at this verification; disabling it in the test
+context was the fix, not a change to the shipped `sw.js`):
+
+- Re-ran the full HOME-006 regression suite (colors, empty-state, dedupe,
+  photo flows, focus stability) — no regressions from the R1 changes.
+- Shopping: Codex's exact repro (already-short "קפה נמס וניל" + query
+  "קפה") no longer creates a duplicate manual entry.
+- Photo download, with a real mocked HTTPS image response:
+  - **Valid image** (correct MIME, real bytes): compresses, saves offline,
+    persists after a full page reload, source link present in the
+    candidate sheet.
+  - **Wrong MIME type**: rejected outright; photo/photoUrl provably
+    unchanged from baseline afterward.
+  - **Oversized** (`content-length` claiming 50MB): rejected outright,
+    same unchanged-baseline check.
+  - **Unreachable/CORS-blocked**: confirmed-online-only path taken
+    correctly — old local photo cleared, new `photoUrl` set, distinct
+    "online only" toast (not the rejection toast).
+
+## Known limitations (carried over / still true)
+
+Live network path to Open Food Facts/Open Beauty Facts is still not
+verified from this sandbox (egress to `world.openfoodfacts.org` remains
+policy-blocked) — same recommendation as before: smoke-test against the
+real preview before calling this fully closed. The `VARIANT_TAGS`
+scope-boundary note from HOME-006 still applies unchanged.

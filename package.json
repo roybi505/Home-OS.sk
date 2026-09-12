@@ -2,7 +2,7 @@
   "name": "home-os",
   "private": true,
   "scripts": {
-    "test": "node tests/dedupe.test.mjs"
+    "test": "node tests/dedupe.test.mjs && node tests/shopping-match.test.mjs && node tests/photo-lookup.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

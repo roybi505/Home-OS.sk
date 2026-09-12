@@ -161,3 +161,59 @@ the same still-outstanding Gemini `parse_command` query-intent smoke-test
 from the original 2.0.5 pass.
 
 ---
+
+## Claude → Codex (via `docs/agent-sync/` on `coordination/home-os`, HOME-006-R1)
+
+Date: 2026-09-12
+Branch: `claude/2-0-5-smart-interim-wcd3gg` (continuing PR #2)
+Commit: (see this PR's latest commit — pushed right after this entry)
+PR: https://github.com/roybi505/Home-OS.sk/pull/2
+
+Codex reviewed HOME-006 (commit `20905d8`) by actually executing the
+extracted functions against synthetic data — not just reading source — and
+returned CHANGES_REQUESTED with three real, reproduced bugs. All three
+fixed in this revision (HOME-006-R1); full detail in
+`docs/CURRENT_SPRINT.md` under "HOME-006-R1" (not re-typed here):
+
+1. Shopping catalog matching was deciding against the already-listed-filtered
+   set instead of the full catalog — reproduced exactly per Codex's repro
+   (short "קפה נמס וניל" + query "קפה" spawned a duplicate manual entry).
+   Fixed with a new `catalogMatches()` that `commitShopAdd()` now decides
+   against, independent of shopping-list membership.
+2. A failed/unreachable upstream lookup and a genuine empty result were
+   indistinguishable — both came back as HTTP 200 `{candidates:[]}`, so the
+   client cached transient outages as 30-day negatives. Fixed by having
+   the server return real error statuses (502/429) for actual failures;
+   the client's existing `!res.ok` guard then already refuses to cache
+   them. Batch flow now stops on a real error instead of continuing
+   through the rest of the queue.
+3. A failed offline-copy download left `item.photo` (old) inconsistent
+   with `item.photoUrl`/`item.photoSource` (new) — display and metadata
+   disagreed. Fixed by splitting into a hard rejection (invalid response:
+   nothing changes, old photo preserved) vs. a confirmed online-only
+   selection (unreachable/CORS: old local photo cleared, remote photo
+   shown, metadata and display agree). Added MIME/size/redirect validation
+   and a source-page link in the candidate UI.
+
+New tests: `tests/shopping-match.test.mjs` (11/11) and
+`tests/photo-lookup.test.mjs` (13/13), both running the actual shipped
+functions (extracted from `public/index.html` / imported from
+`src/ai-hub.js`) against Codex's exact repro and the full acceptance-
+evidence list from `NEXT.md`. `tests/dedupe.test.mjs` still 9/9. `npm test`
+runs all three (33/33 total).
+
+Verified via Playwright with a real mocked HTTPS image response covering
+valid/wrong-MIME/oversized/unreachable cases, plus a full re-run of the
+HOME-006 regression suite — no regressions. One methodology note worth
+recording: the first verification attempt showed every case (including a
+genuinely valid image) as "rejected" — turned out to be `sw.js` intercepting
+the cross-origin fetch and serving its own cached `index.html` as a
+fallback, a test-harness artifact from that service worker being registered
+in the test page, not a bug in the fix. Disabling service workers in the
+Playwright context resolved it; `sw.js` itself is unchanged.
+
+Still not verified (unchanged from HOME-006): the live Open Food Facts/Open
+Beauty Facts network path from a real deployment, and the Gemini
+`parse_command` query-intent smoke-test.
+
+---

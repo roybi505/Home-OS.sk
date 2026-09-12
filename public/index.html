@@ -1104,17 +1104,30 @@ function shopText(){
    Only when nothing in the catalog matches does it fall back to a plain
    manual entry, exactly per the release priority: existing items before
    manual extras. */
-function shoppingMatches(q){
+/* Full-catalog substring match, independent of shopping-list membership.
+   This is the one function that may ever decide "does typed text refer to
+   a real product" — shopping-list membership is a display concern, never
+   a matching concern, precisely because conflating the two (an earlier
+   version filtered already-listed items out before deciding) is what let
+   an already-short item like "קפה נמס וניל" spawn a duplicate manual
+   "קפה" entry: the filtered set came back empty and looked like "no match"
+   even though the catalog match was real. */
+function catalogMatches(q){
   q = (q || '').trim().toLowerCase();
   if (!q) return [];
+  return S.items.filter(it =>
+    (it.name||'').toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q));
+}
+/* Live dropdown only: same matches, minus items already on the list —
+   purely a display nicety (no point suggesting something already there).
+   commitShopAdd() below must NOT use this for its match-count decision. */
+function shoppingMatches(q){
+  if (!(q||'').trim()) return [];
   const alreadyListed = new Set([
     ...getShoppingNeeds().map(n => n.item.id),
     ...S.extras.filter(e => e.itemId).map(e => e.itemId)
   ]);
-  return S.items
-    .filter(it => !alreadyListed.has(it.id))
-    .filter(it => (it.name||'').toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q))
-    .slice(0, 5);
+  return catalogMatches(q).filter(it => !alreadyListed.has(it.id)).slice(0, 5);
 }
 
 function addShoppingItemRef(itemId){
@@ -1137,14 +1150,15 @@ function commitShopAdd(pickedItemId){
     (it.name||'').toLowerCase() === q || (it.brand && `${it.brand} ${it.name}`.toLowerCase() === q));
   if (exact){ addShoppingItemRef(exact.id); UI.shopQ = ''; render(); return; }
 
-  // No exact hit — fall back to the same partial matcher the live dropdown
-  // uses, so "Enter" never creates a disconnected manual entry when a real
-  // catalog item clearly matches. One match: use it. Several: this is
-  // genuinely ambiguous — ask, don't guess; leave the query and the visible
-  // suggestion list in place instead of silently picking one or adding text.
-  const partial = shoppingMatches(text);
-  if (partial.length === 1){ addShoppingItemRef(partial[0].id); UI.shopQ = ''; render(); return; }
-  if (partial.length > 1){ toast('כמה מוצרים תואמים — בחר אחד מהרשימה למטה'); render(); return; }
+  // No exact hit — decide against the FULL catalog (catalogMatches, not the
+  // already-listed-filtered shoppingMatches): one match uses it, whether or
+  // not it happens to already be on the list (addShoppingItemRef gives the
+  // correct "already on the list" feedback either way); several matches is
+  // genuinely ambiguous — even if only one of them isn't yet listed — so
+  // this asks instead of guessing; zero matches falls back to manual text.
+  const matches = catalogMatches(text);
+  if (matches.length === 1){ addShoppingItemRef(matches[0].id); UI.shopQ = ''; render(); return; }
+  if (matches.length > 1){ toast('כמה מוצרים תואמים — בחר אחד מהרשימה למטה'); render(); return; }
 
   S.extras.push({id:uid(), text, got:false}); save(false);
   UI.shopQ = '';
@@ -1560,6 +1574,20 @@ const AI_ENDPOINT = '/api/ai-hub';
    "no match" leaves the existing photo (if any) untouched. */
 const PHOTO_CACHE_TTL_MS = 30 * 24 * 3600 * 1000;
 const PHOTO_BATCH_LIMIT = 20;
+const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+/* mirrors src/ai-hub.js's PHOTO_ALLOWED_HOSTS — the server already
+   validates candidate.imageUrl against this before it ever reaches the
+   client, but the actual image fetch below can still be redirected
+   somewhere else at fetch time, so it's re-checked against the final
+   (post-redirect) response URL too. */
+const PHOTO_ALLOWED_HOSTS = new Set([
+  'world.openfoodfacts.org',   'images.openfoodfacts.org',   'static.openfoodfacts.org',
+  'world.openbeautyfacts.org', 'images.openbeautyfacts.org', 'static.openbeautyfacts.org'
+]);
+function isAllowedPhotoUrl(u){
+  try { const p = new URL(u); return p.protocol === 'https:' && PHOTO_ALLOWED_HOSTS.has(p.hostname); }
+  catch { return false; }
+}
 
 function photoCacheKey(item){
   return item.barcode
@@ -1590,7 +1618,7 @@ async function runProductPhotoSearch(item, opts){
     save(false);
     return candidates;
   } catch (err) {
-    toast('חיפוש התמונה נכשל: ' + err.message);
+    if (!opts.silent) toast('חיפוש התמונה נכשל: ' + err.message);
     return null;
   }
 }
@@ -1602,17 +1630,50 @@ async function runProductPhotoSearch(item, opts){
    fails (CORS, network), falls back to the remote URL only (still shown
    online, just not cached for offline). Returns true if the local/offline
    copy was saved. */
+/* Two distinct outcomes, not one blurred into the other:
+   - REJECTED: we got a response but it fails validation (wrong content
+     type, oversized, or redirected off the allowlist) — something is
+     actually wrong with what came back, so nothing about the item changes
+     at all; the previous photo/photoUrl/photoSource are left exactly as
+     they were. This is the "preserve the previous photo on failed
+     replacement" case.
+   - APPLIED, online-only: the fetch itself couldn't even complete (CORS
+     block, network, unreachable) — common and expected for a cross-origin
+     image with no permissive CORS headers. The candidate URL was already
+     validated server-side, so this is a legitimate, user-approved
+     "confirmed online-only selection," not a failure: the old photo is
+     cleared so photoSrc() actually shows the new remote photo instead of a
+     stale local one — display and metadata agree either way.
+   Returns {applied, offline}. */
 async function applyFoundPhotoToItem(item, candidate){
   let dataUrl = '';
+  let rejected = false;
   try {
-    const res = await fetch(candidate.imageUrl, { mode: 'cors' });
-    if (res.ok) dataUrl = await compressImageFile(await res.blob(), 640, 0.7);
-  } catch (e) { /* offline copy unavailable — remote URL still works online */ }
-  if (dataUrl) item.photo = dataUrl;
+    const res = await fetch(candidate.imageUrl, { mode: 'cors', signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const finalUrlOk = !res.url || isAllowedPhotoUrl(res.url);
+      const contentType = res.headers.get('content-type') || '';
+      const declaredLen = Number(res.headers.get('content-length') || 0);
+      if (!finalUrlOk || !contentType.startsWith('image/') || (declaredLen && declaredLen > PHOTO_MAX_BYTES)) {
+        rejected = true;
+      } else {
+        const blob = await res.blob();
+        if (blob.size > PHOTO_MAX_BYTES) rejected = true;
+        else dataUrl = await compressImageFile(blob, 640, 0.7);
+      }
+    }
+    // A non-ok response falls through as "couldn't verify" (online-only
+    // fallback), same as the network/CORS errors caught below — only an
+    // actually-received-but-invalid response is a hard rejection.
+  } catch (e) { /* CORS-blocked or unreachable — online-only fallback still applies below */ }
+
+  if (rejected) return { applied: false, offline: false };
+
+  item.photo = dataUrl || '';
   item.photoUrl = candidate.imageUrl;
   item.photoSource = { source: candidate.source, url: candidate.sourceUrl };
   if (dataUrl) uploadItemPhoto(item, dataUrl);
-  return !!dataUrl;
+  return { applied: true, offline: !!dataUrl };
 }
 
 async function findPhotoForItem(item){
@@ -1638,7 +1699,7 @@ function openPhotoCandidates(item, candidates){
       <div class="group" style="margin-bottom:10px;padding:10px">
         <img src="${esc(c.imageUrl)}" alt="" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--surface-2)">
         <div class="muted bidi" style="margin-top:6px">${esc(c.productName||'')}${c.brand?' · '+esc(c.brand):''}</div>
-        <div class="muted" style="margin-bottom:8px">מקור: ${esc(c.source)}</div>
+        <div class="muted" style="margin-bottom:8px">מקור: <a href="${esc(c.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(c.source)}</a></div>
         <button class="btn a" data-pick="${i}">בחר תמונה זו</button>
       </div>`).join('')}</div>
     <button class="btn g" id="pcCancel">ביטול</button>
@@ -1647,9 +1708,11 @@ function openPhotoCandidates(item, candidates){
     document.querySelectorAll('[data-pick]').forEach(btn => btn.onclick = async () => {
       btn.disabled = true; btn.textContent = 'שומר…';
       const c = candidates[Number(btn.dataset.pick)];
-      const gotLocal = await applyFoundPhotoToItem(item, c);
-      closeSheet(); save();
-      toast(gotLocal ? 'התמונה נשמרה' : 'התמונה תוצג מהמקור המקוון בלבד (לא נשמרה לצפייה אופליין)');
+      const result = await applyFoundPhotoToItem(item, c);
+      closeSheet();
+      if (!result.applied){ toast('התמונה לא עברה אימות — שום דבר לא השתנה'); return; }
+      save();
+      toast(result.offline ? 'התמונה נשמרה (כולל לצפייה אופליין)' : 'התמונה תוצג מהמקור המקוון בלבד (לא נשמרה לצפייה אופליין)');
     });
   });
 }
@@ -1671,17 +1734,25 @@ function openPhotoBatch(){
   `, async () => {
     $('pbClose').onclick = closeSheet;
     const results = [];
+    let stoppedEarly = false;
     for (let i = 0; i < targets.length; i++){
       const it = targets[i];
       if (!$('pbStatus')) return; // sheet was closed mid-batch
       $('pbStatus').textContent = `בודק ${i+1} מתוך ${targets.length}: ${it.name}`;
-      const candidates = await runProductPhotoSearch(it, { useCache: true });
-      if (candidates && candidates.length) results.push({ item: it, candidate: candidates[0] });
+      const candidates = await runProductPhotoSearch(it, { useCache: true, silent: true });
+      // A real error (network/outage/rate-limit) — not "no match" — stop
+      // instead of burning through every remaining item against a database
+      // that's already struggling. No automatic retry; the user can just
+      // run the batch again later.
+      if (candidates === null){ stoppedEarly = true; break; }
+      if (candidates.length) results.push({ item: it, candidate: candidates[0] });
     }
     if (!$('pbStatus')) return;
-    $('pbStatus').textContent = results.length
-      ? `נמצאו ${results.length} תמונות אפשריות — בחר אילו לשמור`
-      : 'לא נמצאו תמונות תואמות לאף מוצר';
+    $('pbStatus').textContent = stoppedEarly
+      ? `נעצר אחרי ${results.length ? 'כמה תוצאות' : 'ללא תוצאות'} — מאגר התמונות לא זמין כרגע. נסה שוב מאוחר יותר.`
+      : results.length
+        ? `נמצאו ${results.length} תמונות אפשריות — בחר אילו לשמור`
+        : 'לא נמצאו תמונות תואמות לאף מוצר';
     $('pbList').innerHTML = results.map((r,idx)=>`
       <div class="shop-item">
         <img src="${esc(r.candidate.imageUrl)}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;background:var(--surface-2)">
@@ -1692,13 +1763,16 @@ function openPhotoBatch(){
       $('pbList').insertAdjacentHTML('beforeend', `<button class="btn a" id="pbApply" style="margin-top:10px">שמירת הנבחרים</button>`);
       $('pbApply').onclick = async () => {
         $('pbApply').disabled = true; $('pbApply').textContent = 'שומר…';
-        let n = 0;
+        let saved = 0, rejected = 0;
         for (const cb of document.querySelectorAll('.pbPick:checked')){
-          await applyFoundPhotoToItem(results[Number(cb.dataset.idx)].item, results[Number(cb.dataset.idx)].candidate);
-          n++;
+          const r = results[Number(cb.dataset.idx)];
+          const result = await applyFoundPhotoToItem(r.item, r.candidate);
+          if (result.applied) saved++; else rejected++;
         }
         save();
-        toast(n ? `${n} תמונות נשמרו` : 'לא נבחר כלום');
+        toast(saved
+          ? `${saved} תמונות נשמרו${rejected ? ` · ${rejected} נדחו באימות` : ''}`
+          : (rejected ? `${rejected} תמונות נדחו באימות — שום דבר לא נשמר` : 'לא נבחר כלום'));
         closeSheet();
       };
     }

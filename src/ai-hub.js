@@ -87,6 +87,13 @@ function isAllowedImageUrl(u){
   } catch { return false; }
 }
 
+/* Returns {status, data}: 'ok' (genuine answer, even an empty one),
+   'rate_limited' (429 — never counts as a real "no match"), or 'error'
+   (network/timeout/other non-2xx/bad JSON — also never a real "no match").
+   Collapsing all three into a bare null, as an earlier version did, is
+   exactly the bug Codex found: a transient outage became indistinguishable
+   from "this product genuinely has no photo" and got cached as one for
+   30 days. */
 async function fetchJsonSafe(url){
   let res;
   try {
@@ -94,9 +101,11 @@ async function fetchJsonSafe(url){
       signal: AbortSignal.timeout(PHOTO_FETCH_TIMEOUT_MS),
       headers: { 'User-Agent': 'HomeOS/2.0.5 (household inventory app; contact via GitHub repo)' }
     });
-  } catch { return null; } // network error, timeout, DNS, etc — treated as "no match", never surfaced as a crash
-  if (!res.ok) return null;
-  try { return await res.json(); } catch { return null; }
+  } catch { return { status: 'error', data: null }; }
+  if (res.status === 429) return { status: 'rate_limited', data: null };
+  if (!res.ok) return { status: 'error', data: null };
+  try { return { status: 'ok', data: await res.json() }; }
+  catch { return { status: 'error', data: null }; }
 }
 
 function candidateFromProduct(p, label, base, fallbackCode){
@@ -126,10 +135,15 @@ async function findProductPhoto(body){
 
   let candidates = [];
   let matchType = 'none';
+  let sawSuccess = false;   // at least one source genuinely answered, even if empty
+  let sawRateLimit = false; // at least one source said 429
 
   if (barcode) {
     for (const src of PHOTO_SOURCES) {
-      const data = await fetchJsonSafe(`${src.base}/api/v2/product/${encodeURIComponent(barcode)}.json`);
+      const { status, data } = await fetchJsonSafe(`${src.base}/api/v2/product/${encodeURIComponent(barcode)}.json`);
+      if (status === 'rate_limited') { sawRateLimit = true; continue; }
+      if (status !== 'ok') continue;
+      sawSuccess = true;
       if (data && data.status === 1 && data.product) {
         const c = candidateFromProduct(data.product, src.label, src.base, barcode);
         if (c) { candidates.push(c); matchType = 'barcode'; break; }
@@ -141,10 +155,13 @@ async function findProductPhoto(body){
     const q = [brand, name, variant].filter(Boolean).join(' ').trim();
     if (q) {
       for (const src of PHOTO_SOURCES) {
-        const data = await fetchJsonSafe(
+        const { status, data } = await fetchJsonSafe(
           `${src.base}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=1&page_size=5`
         );
-        const products = (data && Array.isArray(data.products)) ? data.products : [];
+        if (status === 'rate_limited') { sawRateLimit = true; continue; }
+        if (status !== 'ok') continue;
+        sawSuccess = true;
+        const products = Array.isArray(data && data.products) ? data.products : [];
         for (const p of products) {
           const c = candidateFromProduct(p, src.label, src.base, p.code);
           if (c) candidates.push(c);
@@ -155,7 +172,19 @@ async function findProductPhoto(body){
     }
   }
 
-  return json({ candidates: candidates.slice(0, 3), matchType });
+  if (candidates.length) return json({ candidates: candidates.slice(0, 3), matchType });
+
+  // Zero candidates: only report this as a genuine "no match" (the shape the
+  // client is allowed to cache as negative) when at least one source truly
+  // answered. Otherwise this is an outage/rate-limit, not a fact about the
+  // product, and must come back as a real error so the client never caches
+  // it and the batch flow knows to stop rather than burn through every
+  // remaining item against a database that's already struggling.
+  if (sawSuccess) return json({ candidates: [], matchType: 'none' });
+  if (sawRateLimit) {
+    return json({ error: 'Product database is rate-limiting requests — try again in a few minutes', candidates: [], matchType: 'rate_limited' }, 429);
+  }
+  return json({ error: 'Could not reach the product database', candidates: [], matchType: 'unavailable' }, 502);
 }
 
 /* ---------------- scan_shelf ---------------- */
