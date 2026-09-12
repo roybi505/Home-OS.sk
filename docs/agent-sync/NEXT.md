@@ -1,7 +1,7 @@
 # Home OS agent coordination
-Task ID: HOME-006-R1
+Task ID: HOME-006-R2
 Status: READY_FOR_CLAUDE
-Baseline reviewed: 7e92c3ecc1a31c68272801bd6144386504bafcaa (PR #2)
+Baseline reviewed: 6adcaa0789dbe173c246726896d8ba43b0475b8e (PR #2)
 Owner: Claude (implementation); Codex (review)
 This dedicated communication folder is PUBLIC, not a private channel. No secrets or personal household data.
 
@@ -17,25 +17,25 @@ Proposed cadence: Codex checks every 6h for 3 days; Claude may be separately sch
 If the task ID was already handled and no new feedback exists, exit. Only changed implementation SHAs merit a new review. Maximum one bounded implementation pass per invocation.
 Acceptance by Roy, not an arbitrary timer, defines product satisfaction.
 
-## Active revision — HOME-006-R1
+## Active revision — HOME-006-R2
 Status: READY_FOR_CLAUDE
-Reviewed implementation: 20905d8352e6d8b74dec78389e8199fbd99a4952
-This revision supersedes the original implementation checklist below as the next bounded pass. Do not rebuild completed features or begin the deferred backlog. Claim HOME-006-R1 in REPLY.md before editing.
+Reviewed implementation: 6adcaa0789dbe173c246726896d8ba43b0475b8e
+Single bounded follow-up to R1; Shopping's reproduced duplicate is fixed. Preserve that fix, working search, and sage theme. Do not rebuild completed features or start the backlog.
 
-Target files: public/index.html and src/ai-hub.js. Keep PR #2's feature branch; preserve working search and the new sage theme.
+Target files: public/index.html, src/ai-hub.js, public/sw.js; focused regression tests under tests/ and existing implementation handoff docs.
 
-1. Fix Shopping catalog matching independently of shopping-list membership. shoppingMatches currently removes already-listed items before commitShopAdd decides whether to create a manual extra. Reproduced: catalog "קפה נמס וניל" already in shortages + query "קפה" => new manual extra. Match the complete catalog first, then show already-listed state. One match already listed must be a no-op with feedback; multiple matching variants must require selection even when only one is not listed; create manual text only for zero catalog matches.
-2. Distinguish upstream photo lookup failure from a successful empty result. fetchJsonSafe converts HTTP errors/timeouts/malformed JSON to null; findProductPhoto returns HTTP 200 with []; the client caches that as a negative result for 30 days. Return explicit unavailable/partial-result status. Never negative-cache failures (including when all sources fail); allow retry and preserve useful results from healthy sources. Handle 429 with bounded retry/backoff or stop-and-retry feedback, without repeated requests.
-3. Bound the image download in applyFoundPhotoToItem: timeout, raster MIME validation, response-byte limit before decoding, and trusted HTTPS URL/redirect handling. Reject unsafe/oversized responses gracefully; no arbitrary URL proxy. Preserve the previous photo on failed replacement so the UI cannot claim a different image was applied while photoSrc still displays the old one. For a product with no photo, clearly distinguish confirmed online-only selection from saved offline bytes. Expose the source-page link and applicable attribution/license in the candidate flow and retain metadata with the selection.
+1. Preserve an existing photo and all its metadata when replacement download fails (network/CORS/timeout/HTTP error/decode failure). R1 clears item.photo and reports applied:true on network failure, contrary to R1 acceptance. For photo-less items retain an honest, explicit online-only choice; replacing an existing local copy with online-only must be a separate informed confirmation, not an implicit fallback.
+2. Track partial lookup failures. Reproduced: Food source HTTP 503 + Beauty successful empty => HTTP 200 matchType:none, still cached negatively for 30 days. Empty results are definitive only when all relevant attempted sources/paths succeeded with valid response shapes. Partial failures with zero candidates must remain retryable and not negative-cacheable; keep healthy-source candidates. Test mixed empty+503, empty+429, barcode-empty+search-failure and malformed response shape, in addition to all-source failure.
+3. public/sw.js currently serves cached index.html on ANY failed GET, including product image fetches. Reproduced with its actual fetch handler. Restrict HTML fallback to app navigation; do not substitute HTML for images/API responses or broadly cache third-party photo traffic. Keep app-shell offline load. Validate with service workers ENABLED: valid image, failed image, existing-photo replacement preservation, saved image after offline reload. Disabling service workers may isolate unit tests but cannot establish production-path success.
+4. Finish existing download safeguards: actual streamed-byte limit before full buffering (res.blob() then size check does not bound download memory); explicit supported raster MIME allowlist instead of image/*; validate initial URL and reject disallowed redirects before following (rejecting all redirects is acceptable). Preserve image metadata on rejection. Keep source link and add applicable provider image license/attribution metadata; no paid service or open proxy.
 
-Acceptance evidence:
-- Regression fixtures: already-listed partial match, mixed listed/unlisted ambiguous variants, exact listed match, zero-match manual entry.
-- Mocked upstream 503/429/timeout/malformed response must not create a 30-day negative cache; successful empty lookup may cache; healthy-source candidates survive other-source failure.
-- Valid image saves/compresses and displays after offline reload; stalled, oversized, non-image, disallowed redirect, and failed replacement settle with honest feedback and intact existing photo.
-- Single and batch approval remain explicit; no image changes before acceptance.
-- Run focused tests and report exact SHA, results, and any unperformed live-provider/mobile tests. Recheck PR checks for that SHA; no claim of live/offline success based only on stubs.
+Acceptance: focused regression tests for these cases, existing Shopping/dedupe tests stay green, and report exact head SHA, checks and limitations. Do not label mocked provider calls as live integration verification.
 
-Codex status: CHANGES_REQUESTED, not merge approval. REPLY.md reports Roy's conditional merge authorization; the review condition is not met. No merge or deployment in this coordination pass.
+### Execution permission note — HOME-006-R2
+This is implementation work already requested within HOME-006, not a request for another planning approval. Within your existing repository/tool grants, proceed without asking Roy again for each routine step: edit the target code and directly related tests, make necessary scoped implementation choices, run local tests, commit/push to the existing PR feature branch, update implementation handoff docs and your REPLY.md. Claim this task IN_PROGRESS before editing, then report READY_FOR_REVIEW or a concrete BLOCKED reason.
+Do not modify Codex-owned NEXT.md/REVIEW.md, clear household storage, change credentials/permissions, buy services, force-push, expand features or deploy/merge automatically. This note does not override platform permission prompts or confer missing tool access.
+Stop for a genuinely new authorization need, not routine coding choices. The reported conditional merge approval is still dependent on actual review approval and clean checks; this review is CHANGES_REQUESTED. No merge authorization is issued here.
+Once finished, stop for review; do not repeatedly rebuild the same revision. Roy is evaluating the design separately; don't start a redesign without his feedback.
 
 ## Original scope / user priority update
 Roy reports search works on his device. Keep it working and regression-test continuous typing, caret and composition. Do not delay this iteration solely for an input-render refactor. Previous review remains a technical risk, not proof of an observed device failure.
