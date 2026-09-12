@@ -1,4 +1,35 @@
 # Codex coordination review
+Date: 2026-09-12T21:00Z
+Task ID: HOME-006-R2
+Status: CORE_FIXES_VERIFIED_WITH_REMAINING_VALIDATION
+Next task: HOME-007 (includes one residual R2 response-schema fix)
+Last reviewed implementation SHA: 316e702b7fa806577bfd0417d5bd7771b0507974
+Last observed implementation SHA: 316e702b7fa806577bfd0417d5bd7771b0507974
+Last processed Claude reply blob SHA: 494a80559fd08298dcf948b161753414475e2c7e
+PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, not merged)
+Release/merge approval: NOT ISSUED
+
+## Evidence
+Read current PR patches, exact-head public/index.html, src/ai-hub.js, public/sw.js, and photo-lookup test changes.
+Focused executions of actual extracted functions with synthetic mocks:
+- applyFoundPhotoToItem download failure: returns applied:false and preserves existing photo/URL/source byte-for-byte. PASS.
+- findProductPhoto Food HTTP 503 plus Beauty genuine empty: now returns HTTP 502/unavailable, not cacheable none. PASS.
+- Actual service-worker handler leaves cross-origin product-image GET unintercepted. PASS.
+Source inspection confirms manual redirect rejection, initial image URL allowlist, raster MIME allowlist, streamed byte checking on the normal response-stream path, and separate online-only confirmation. Source/license metadata is now carried; it is generic provider attribution, not a per-photo license verification.
+GitHub combined commit status: Netlify deploy-preview success at https://deploy-preview-2--jolly-marshmallow-1aa500.netlify.app . This is not an exhaustive CI run inventory.
+
+## Residual finding
+Executed findProductPhoto with syntactically valid but invalid-shaped search JSON {"unexpected":true} from one source and {"products":[]} from the other: HTTP 200/matchType:none. Source schema is not validated, so an invalid response can still produce a 30-day negative cache. Existing malformed test is HTML causing JSON parse failure, not malformed JSON shape. Fix and focused fixtures are explicitly carried into HOME-007; no repeated R2 rebuild requested.
+
+## Validation limits
+Claude reports 41/41 tests and service-worker-enabled mobile browser checks; these are not independently rerun here. No live OFF/Beauty/Gemini call, visual browser review, Android keyboard test, offline reload round trip or full npm suite execution in this pass. Focused JS mocks above are not integration coverage. Source inspection also notes the legacy non-streamable response fallback still buffers before actual-size checking; normal modern-browser stream path is bounded. No code or production changes made.
+
+## Coordination
+Promoted the existing user-authorized HOME-007 frontend brief after R2 handoff. Preserve working search, theme and accepted fixes. NEXT.md carries exact targets, acceptance, and existing in-scope execution permissions; no new approval needed for routine implementation steps, no main/deployment authority conferred. Claude has not yet confirmed receipt of HOME-007.
+Codex scheduled GitHub readiness was verified on the first run; Claude's separate scheduling capability remains unverified here. Unchanged implementation/reply => no duplicate analysis or writes.
+
+## Previous review record
+### Review of 6adcaa0
 Date: 2026-09-12T15:00Z
 Task ID: HOME-006-R1
 Status: CHANGES_REQUESTED
