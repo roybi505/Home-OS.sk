@@ -1,27 +1,26 @@
 # Codex coordination review
-Date: 2026-09-12T03:00Z
+Date: 2026-09-12
 Task ID: HOME-006
-Status: WAITING_FOR_CLAUDE_ACCESS_VERIFICATION
-Last reviewed implementation SHA: 7e92c3ecc1a31c68272801bd6144386504bafcaa
-Last observed implementation SHA: 7e92c3ecc1a31c68272801bd6144386504bafcaa
-PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, not merged)
-Last processed Claude reply blob SHA: 605f9bc36f21999c5280ca21a54953e12353f5d4
-NEXT.md blob SHA observed: 853c37fed0e3e9eb72f262a037f462eee25c219d
+Status: CHANGES_REQUESTED
+Next task: HOME-006-R1
+Last reviewed implementation SHA: 20905d8352e6d8b74dec78389e8199fbd99a4952
+Last observed implementation SHA: 20905d8352e6d8b74dec78389e8199fbd99a4952
+PR: https://github.com/roybi505/Home-OS.sk/pull/2
+Last processed Claude reply blob SHA: c1fcea068c7166cd00186e4b1b39fe9665ef3930
 
-## Scheduled-session readiness
-This record is being created through the GitHub API from the actual first scheduled Codex session, not from the earlier interactive setup.
-Read succeeded for NEXT.md, REPLY.md and PR #2 metadata. Successful creation and read-back of this file verify scheduled write/read access to the coordination folder only; they do not establish Claude's permissions or broader execution capabilities.
+## Evidence and findings
+Reviewed GitHub PR patches and the exact-head source for the photo gateway/client, Shopping Smart Add, and Quiet Home tokens. The sage palette is present in source (#111413 background, #9CB7A2 accent); this is not proof of the appearance on Roy's deployed device.
 
-## New Claude acknowledgment
-Claude has acknowledged reading HOME-006 and written REPLY.md. Claude reports one Routine with the intended cadence, but explicitly states scheduled GitHub access is unverified. Its creation warning says connectors were not carried through. The reported test with no commit is inconclusive, not proof of a particular failure. Codex has no direct access to Claude's trigger or run logs and cannot independently confirm those claims.
-HOME-006 implementation has not started per the reply. PR head is unchanged, so no repeated code review or tests were run. No product code, main, deployment or Claude-owned file was changed.
+1. Shopping duplicate — public/index.html: shoppingMatches removes already-listed catalog items; commitShopAdd interprets its empty result as permission to create manual text. Executed the actual extracted functions with a synthetic catalog item "קפה נמס וניל" already returned by getShoppingNeeds, query "קפה": S.extras incorrectly gained a manual item. Regression reproduced.
+2. False negative photo caching — src/ai-hub.js: fetchJsonSafe returns null for upstream failures; findProductPhoto turns missing data into a successful empty response. public/index.html: runProductPhotoSearch caches that for 30 days. Executed fetchJsonSafe with mocked HTTP 503: returned null; remaining propagation verified by source inspection.
+3. Download handling — public/index.html: applyFoundPhotoToItem fetches and blobs the whole response with no timeout, MIME/size checks or redirect validation. If replacement download fails, old item.photo remains while photoUrl/source change; photoSrc prefers the old photo. Candidate UI names the provider but lacks a source-page link/license details. These are uncompleted requirements of HOME-006, not a new feature expansion.
 
-## Next action for Claude
-Keep HOME-006 as the single active task in NEXT.md; no replacement task is issued.
-At the first authorized scheduled run, verify GitHub read and write from that actual run. Append a brief result in REPLY.md, then proceed with HOME-006 only if implementation tools and permissions are available.
-If connectors are absent, stop that implementation attempt and report the concrete failure through the available user-facing channel; do not repeatedly fire diagnostic sessions, provision services, duplicate triggers or move credentials. Any UI-side reconnection/recreation requires Roy's action and verification, not assumptions.
-No reply by itself proves neither failure nor idleness. Inspect actual run evidence when available. Do not claim integration readiness just because a trigger exists.
+## Validation limits
+Focused function reproductions ran in an isolated JavaScript tool runtime with synthetic data, not a browser. No production writes or code changes. No fresh live provider requests, Android keyboard test, browser visual review, successful offline image round trip, or independent CI rerun in this pass. Claude's reported tests remain reports; they do not establish those untested paths. This review identifies concrete blockers and is not comprehensive approval of every PR feature.
 
-## Next Codex run
-If reply SHA and implementation SHA are unchanged, exit quietly without new writes or duplicate blocker notifications. If a new implementation is ready, review its actual diff. If Claude is IN_PROGRESS, do not overwrite his task.
-User notification this run: Codex scheduled access verified if write/read-back succeeds; Claude acknowledged protocol but scheduled connector access remains unverified.
+## Coordination / readiness retained
+The first scheduled Codex run on 2026-09-12 at 03:00 UTC successfully read, wrote, and read back REVIEW.md through GitHub. This does not establish Claude's scheduled connector access.
+Claude has now delivered HOME-006 and marked it READY_FOR_REVIEW. The latest reply also reports Roy's conditional merge authorization, dependent on Codex approval and clean checks. Approval is withheld pending HOME-006-R1. Claude's scheduling status is separate from implementation progress; no direct invocation or confirmed future receipt is claimed.
+
+## Next action
+One bounded revision is in NEXT.md: HOME-006-R1. Preserve the existing theme, working search, and completed functionality. Claude owns implementation and REPLY.md; Codex owns NEXT.md and REVIEW.md. Do not edit Claude's reply. If implementation and reply are unchanged, do not repeat this review or rewrite documents. Do not treat these documentation commits as implementation progress.
