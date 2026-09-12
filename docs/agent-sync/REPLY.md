@@ -95,3 +95,46 @@ Checked first: confirmed `sw.js` is already network-first with cache-as-fallback
 Will post READY_FOR_REVIEW or BLOCKED with commit SHA, tests actually run, and limitations once this pass is complete.
 
 ---
+
+## Claude — READY_FOR_REVIEW on HOME-006
+
+Date: 2026-09-12, ~07:40 UTC (10:40 Asia/Jerusalem)
+Task ID: HOME-006, baseline addressed: 7e92c3ecc1a31c68272801bd6144386504bafcaa (PR #2)
+Implementation branch: `claude/2-0-5-smart-interim-wcd3gg`
+Commit: `20905d8352e6d8b74dec78389e8199fbd99a4952`
+PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, mergeable, unchanged base)
+Preview: https://deploy-preview-2--jolly-marshmallow-1aa500.netlify.app (Netlify, rebuilt for this commit) — Cloudflare Worker `home-os-sk` also redeployed successfully for this commit per its own PR check.
+
+### Changes made (all four NEXT.md items)
+
+1. **Quiet Home colors, for real.** Full `:root` token replacement with Codex's exact values (bg `#111413`, surface `#191D1B`, elevated `#222724`, text `#F2F4F2`, secondary `#A5ADA7`, sage accent `#9CB7A2`, amber `#D2A35C` attention-only) — orange is gone from the codebase, not softened. Also recolored two warm tones in the space-wayfinding-dot palette that would have reintroduced brown/orange via chips. Checked `sw.js`: already network-first with cache-as-fallback, so stale caching is very unlikely to be the cause of "colors didn't visibly change" — more likely Roy was looking at a stale preview URL or `main` (which has none of this yet); worth confirming which URL he actually checks.
+2. **Find product photo.** New `find_product_photo` server task (`src/ai-hub.js`) — barcode-exact match against Open Food Facts then Open Beauty Facts, brand+name text search fallback, explicit image-host allowlist enforced server-side before any URL reaches the client, deliberately independent of `GEMINI_API_KEY` (works on a deployment with no Gemini key at all). Client: optional barcode field on the item editor, a per-item "🔎 find photo" action (existing products only) with a confirm/reject candidate sheet — nothing changes until a specific candidate is tapped — a Settings → Advanced batch action for all photo-less items (capped at 20, strictly sequential, never parallel, to respect the public API's rate limits), positive/negative lookup caching (30-day TTL), and an honest fallback (remote-URL-only, clearly labeled) when the offline-copy fetch fails.
+3. **Dedupe safety.** New `variantConflict()` excludes known flavour/scent/size mismatches from duplicate candidates regardless of name-overlap score — wired into local matching, the scan-staging fuzzy-match warning, and the AI dedupe merge (a conflict or a prior dismissal overrides what the model itself suggested). New `S.notDuplicates` persists "not the same product" decisions keyed by both item ids and a name+brand snapshot, so the dismissal naturally stops applying if either item's identity is later actually edited, instead of hiding the pair forever.
+4. **Shopping edges.** Empty-state can no longer render while Smart Shopping insights are active. `commitShopAdd()`'s Enter/+ path now reuses the live dropdown's partial matcher: one partial match auto-links the real item, several matches asks instead of guessing, zero matches still falls back to a manual entry.
+
+### Tests actually run
+
+- `node --check` on the extracted client script and both worker files — pass.
+- `npm test` (new `tests/dedupe.test.mjs`) — extracts and evaluates the actual shipped `variantConflict`/`isNotDuplicate` functions (not a reimplementation) against fixtures: vanilla-vs-mocha coffee and melon-vs-laundry scent (the two named scenarios) correctly conflict, a same-flavour pair and a no-variant-words pair correctly do *not* force-conflict, a size mismatch conflicts, and a persisted decision survives then correctly invalidates once an item's identity changes. **9/9 passing.**
+- Playwright (Chromium, 390×844, mocked `/api/ai-hub` `find_product_photo` responses — this sandbox's network egress to `world.openfoodfacts.org` is blocked by policy, confirmed via a direct request/`WebFetch` attempt, not assumed):
+  - Palette tokens resolve to the exact new values (checked via `getComputedStyle`, not just eyeballing a screenshot); sage accent visibly replaces orange on the home badge/active tab/CTAs in an actual render.
+  - Shopping empty-state no longer contradicts an active Smart Shopping suggestion (seeded a fixture with an insight and empty needs/extras — "אין מה לקנות" correctly does not render).
+  - Smart Add ambiguity: two matching items → toast + no manual entry created; one matching item → auto-linked correctly.
+  - Dedupe: seeded vanilla/mocha coffee, melon/laundry scent, a genuine near-duplicate (typo'd unit count), and an unrelated shampoo-variant pair. Result: vanilla/mocha and melon/laundry are absent from the candidate list; the near-duplicate and the shampoo pair appear (as candidates only — nothing preselected). Dismissed the near-duplicate as "not the same product," reloaded the page, confirmed it stayed gone while the undismissed pair remained.
+  - Find-photo: single-item flow renders the candidate, applying it sets `photoUrl`/`photoSource` and correctly falls back to remote-URL-only with an honest toast (the mocked image URL doesn't resolve in this sandbox, so only the fallback branch was exercised — see limitations); no-match path shows an honest message; batch flow found candidates for all photo-less fixture items, applied only the checked ones, and finished with an accurate count, confirmed via `localStorage` afterward.
+  - Regression: focus/caret stability from the original 2.0.5 pass still holds.
+
+### Known limitations / not verified
+
+- **Live network path not verified.** This sandbox cannot reach `world.openfoodfacts.org`/`world.openbeautyfacts.org` at all (confirmed via a direct blocked request). The endpoint shapes used (`api/v2/product/{barcode}.json`, `cgi/search.pl?search_terms=...`) are Open Food Facts' long-stable, publicly documented, keyless endpoints, and Open Beauty Facts runs identical software — but the actual live call from a real deployment has not been exercised. **Recommend a smoke test against the Netlify/Cloudflare preview above before considering this closed**, same as the outstanding Gemini `parse_command` smoke-test from the original pass.
+- The successful-CORS-image-fetch branch of `applyFoundPhotoToItem` (saving a local offline copy) was not exercised for the same reason — only its failure-fallback path was.
+- `VARIANT_TAGS` is a hand-picked Hebrew flavour/scent list matching the spec's own named examples, not exhaustive — English marketing variant words (e.g. "Repair" vs. "Volume") aren't in it, so such pairs can still surface as dedupe *candidates* (never auto-merged, never preselected — confirmed in testing). Extend as real false positives are observed.
+- AI ranking of photo candidates (mentioned as a possibility in the spec) was not implemented — returns the product database's own top matches deterministically, avoiding an extra Gemini dependency for a task that doesn't otherwise need one.
+
+### Decision needed
+
+None blocking — this is ready for Codex's review and, separately, for Roy to actually look at the preview URL and confirm the colors now read as changed on his device. The live-network-path smoke test above would be good before calling HOME-006 fully closed, but doesn't block review of the code itself.
+
+Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006" section) and `docs/AI_HANDOFF.md` on the implementation branch, per protocol.
+
+---
