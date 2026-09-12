@@ -224,3 +224,44 @@ Codex's re-review of HOME-006-R1 came back **CHANGES_REQUESTED** again, with thr
 Will post READY_FOR_REVIEW or BLOCKED with commit SHA and test evidence once done.
 
 ---
+
+## Claude — READY_FOR_REVIEW on HOME-006-R2
+
+Date: 2026-09-12, ~20:00 Asia/Jerusalem (17:00 UTC)
+Task ID: HOME-006-R2, reviewed implementation addressed: `6adcaa0789dbe173c246726896d8ba43b0475b8e`
+Implementation branch: `claude/2-0-5-smart-interim-wcd3gg`
+Commit: `316e702b7fa806577bfd0417d5bd7771b0507974`
+PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, base unchanged, description updated with the R2 section)
+
+### Changes made (all three CHANGES_REQUESTED findings, plus the hardening items)
+
+1. **"Confirmed online-only" auto-fallback removed; preservation is now unconditional on failure.** New `downloadPhotoBytes()` reports every failure mode (network/CORS/timeout, non-2xx, any redirect, wrong MIME, oversized, decode) identically as `{ok:false}` — no branch treats an unreachable-but-server-validated URL as an implicit approval. `applyFoundPhotoToItem()` now only ever mutates the item on a fully verified downloaded copy; any failure leaves `photo`/`photoUrl`/`photoSource` completely untouched. Online-only display is a new, separate `applyOnlinePhotoOnly()`, reachable only via a new explicit confirmation sheet (`confirmOnlineOnlyPhoto()`) that is itself only offered when the item has no existing photo to preserve — verified directly: an unreachable candidate against an item **with** an existing photo never shows that sheet at all; the same candidate against a photo-less item leaves the item fully unmodified until the sheet is explicitly accepted.
+2. **Partial-failure tracking now requires unanimous success.** Reproduced Codex's exact repro first (Food 503 + Beauty empty-success → confirmed it returned a cacheable 200/none on the old code), then fixed: `findProductPhoto()`'s tracked flag inverted from `sawSuccess` (true if *any* source answered) to `anyFailure` (true if *any* attempted source/path did not). A zero-candidate result is now only reported as a genuine, cacheable `none` when every attempted source/path succeeded; any failure anywhere forces the honest 502/429 shape instead.
+3. **`public/sw.js` fetch handler actually fixed**, not worked around in tests. It now returns immediately for any cross-origin request (`url.origin !== self.location.origin`) so those requests hit the real network completely unintercepted — verified directly with service workers **enabled** (not blocked, unlike R1's verification): a `fetch()` from the page to a mocked-to-fail cross-origin image URL throws a real `Failed to fetch` error, not the cached `index.html` app shell. The `index.html`-on-failure fallback is now also restricted to real page navigations, so a failed same-origin API/asset request no longer silently turns into HTML either.
+4. **Hardening finished**: streamed byte-limit via `res.body.getReader()` (aborts mid-stream once `PHOTO_MAX_BYTES` is crossed, not after full buffering); explicit raster MIME allowlist (`image/jpeg|png|webp|gif`, not a loose `image/*` prefix that would also accept `image/svg+xml`); initial URL validated against the host allowlist before fetching, and `redirect:'manual'` rejects any redirect outright (the spec's own accepted simplification) rather than trying to validate a redirect target; `candidateFromProduct()` now returns `license`/`licenseUrl` (attribution text + link to the source database's own legal page), shown under the source link in the candidate sheet and stored on `item.photoSource`.
+
+### Tests actually run
+
+- `npm test` — **41/41 passing** across three suites:
+  - `tests/dedupe.test.mjs` (9/9, unchanged).
+  - `tests/shopping-match.test.mjs` (11/11, unchanged).
+  - `tests/photo-lookup.test.mjs` (21/21 — 13 from R1 plus 4 new cases covering exactly the partial-failure combinations from this review: mixed empty+503 [Codex's literal repro], mixed empty+429, barcode-empty-then-search-failure, malformed-response+genuine-empty — all confirmed as real errors, never a cacheable `none`).
+- Playwright (Chromium, mobile viewport, **service workers left enabled** — the point of this pass was to verify the real `sw.js`):
+  - Direct confirmation of the R2 finding #3 bug and its fix: a cross-origin fetch mocked to fail is intercepted and turned into an `index.html` response on the pre-fix handler's reasoning, and is not intercepted (real `Failed to fetch`) on the fixed same-origin-only handler.
+  - Preservation on any failure with an existing photo: wrong-MIME, oversized, and unreachable candidates each leave `photo`/`photoUrl`/`photoSource` byte-for-byte unchanged from baseline.
+  - Explicit online-only confirmation: not offered when a photo already exists; offered and required (item unmodified until accepted) when there's no existing photo; accepting sets `photoUrl` + `photoSource.onlineOnly:true` while `photo` stays empty.
+  - Valid image: still downloads/compresses/saves offline/persists after reload, now also carrying `license`/`licenseUrl`.
+  - Batch flow (`openPhotoBatch()`): a mixed good/unreachable fixture confirms the good item gets its offline photo and the unreachable one is left with no photo/photoUrl at all — batch never triggers the new online-only confirmation on its own, consistent with "selected-item batches only after explicit approval."
+- Re-ran the full HOME-006/R1 regression suite (colors, empty-state, dedupe persistence, Shopping matching, focus stability) against this commit — no regressions.
+
+### Known limitations (carried over, still true)
+
+Live network path to Open Food Facts/Open Beauty Facts from a real deployment is still not verified (this sandbox's egress to `world.openfoodfacts.org` remains policy-blocked, confirmed not assumed) — recommend a real smoke test against the preview URL before calling this fully closed. `VARIANT_TAGS`'s scope boundary is unchanged. The new `license`/`licenseUrl` text is a reasonable general attribution (ODbL for data, CC-BY-SA for most contributed photos) rather than a per-photo verified license lookup.
+
+### Decision needed
+
+None blocking on my end — ready for Codex's re-review at commit `316e702`. Roy's conditional merge approval (recorded above) still requires Codex's actual approval before any merge happens; that condition still isn't met.
+
+Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006-R2" section) and `docs/AI_HANDOFF.md` on the implementation branch, per protocol.
+
+---
