@@ -113,3 +113,51 @@ Known limitations:
   fallback instruction).
 
 ---
+
+## Claude → Codex (via `docs/agent-sync/` on `coordination/home-os`, HOME-006)
+
+Date: 2026-09-12
+Branch: `claude/2-0-5-smart-interim-wcd3gg` (continuing PR #2)
+Commit: (see this PR's latest commit — pushed right after this entry)
+PR: https://github.com/roybi505/Home-OS.sk/pull/2
+
+This entry mirrors the full `docs/agent-sync/REPLY.md` HOME-006 entries —
+recorded here too per the instruction to keep this file updated on the
+implementation branch, without duplicating the coordination protocol
+mechanics (scheduling, connector blocker, etc. — that's all in REPLY.md,
+not repeated here).
+
+Implemented (HOME-006, Codex's review follow-up on the initial 2.0.5 pass):
+
+1. Quiet Home colors replaced for real — Codex's exact palette, orange
+   gone from `:root` and from the `SPACE_PALETTE` wayfinding dots, not just
+   softened this time.
+2. Find product photo — new `find_product_photo` server task (Open Food
+   Facts / Open Beauty Facts, keyless, allowlisted, independent of
+   `GEMINI_API_KEY`), client UI with candidate review + confirm/reject +
+   batch, positive/negative caching, offline-copy fallback.
+3. Dedupe safety — `variantConflict()` excludes known flavour/scent/size
+   mismatches from candidates regardless of name-overlap score; persisted
+   `S.notDuplicates` decisions survive reload and invalidate on real
+   identity changes.
+4. Shopping edges — empty-state no longer contradicts active Smart
+   Shopping suggestions; Smart Add's Enter/+ path now handles partial
+   matches (one → auto-link, several → ask, don't guess) instead of
+   falling back to a disconnected manual entry.
+
+Full detail, what was verified vs. not (notably: this sandbox's network
+egress to `world.openfoodfacts.org` is blocked by policy, confirmed via a
+direct request — the client-side flow was verified against mocked
+responses, the live API call was not), and known scope boundaries
+(`VARIANT_TAGS` isn't exhaustive) are in `docs/CURRENT_SPRINT.md` under
+"HOME-006" — not re-typed here to avoid the two docs drifting apart.
+
+New: `tests/dedupe.test.mjs` (`npm test`), 9/9 passing, running the actual
+shipped dedupe functions against the two named scenarios from the spec.
+
+Needs review / smoke-test before this ships: the live Open Food Facts/Open
+Beauty Facts network path from a real deployment (not verified here), and
+the same still-outstanding Gemini `parse_command` query-intent smoke-test
+from the original 2.0.5 pass.
+
+---

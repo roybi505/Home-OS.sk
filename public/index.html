@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Home OS</title>
-<meta name="theme-color" content="#18181B">
+<meta name="theme-color" content="#111413">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Home OS">
@@ -17,21 +17,21 @@
      background / surface / elevated-surface / text-primary / text-secondary /
      accent / success / warning / danger — the reusable palette.
      --surface-2 doubles as "elevated surface" (stepper buttons, inputs-on-input). */
-  /* Quiet Home: neutral charcoal chrome, orange reserved for genuine
-     actionable moments (primary CTAs, active tab, real alerts) rather
-     than general interface surface — see docs/DECISIONS.md. */
-  --bg:#18181B;
-  --surface:#202024;      --card:#202024;      /* alias kept: many call sites still say --card */
-  --surface-2:#28282D;    --soft:#28282D;      /* alias kept: --soft == elevated surface */
-  --line:#343439; --line2:#28282D;
-  --text:#EDEDEF;   --ink:#EDEDEF;             /* text-primary  (alias: --ink) */
-  --text-2:#A5A5AD; --ink2:#A5A5AD;            /* text-secondary */
-  --text-3:#77777F; --ink3:#77777F;
-  --accent:#D9922E; --accent-ink:#241708; --accent-soft:#332B20;
-  --warning:#E8B34A; --warn:#E8B34A; --warn-soft:#332C1E;
-  --danger:#E2685B;  --danger-soft:#332221;
-  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#1E2B25;
-  --fab-bg:#28282D;
+  /* Quiet Home v2 — exact palette from HOME-006: bg/surface/elevated/text/
+     secondary/sage-accent/amber-attention. Orange is gone entirely, not
+     just softened — see docs/DECISIONS.md. */
+  --bg:#111413;
+  --surface:#191D1B;      --card:#191D1B;      /* alias kept: many call sites still say --card */
+  --surface-2:#222724;    --soft:#222724;      /* alias kept: --soft == elevated surface */
+  --line:#2A302C; --line2:#222724;
+  --text:#F2F4F2;   --ink:#F2F4F2;             /* text-primary  (alias: --ink) */
+  --text-2:#A5ADA7; --ink2:#A5ADA7;            /* text-secondary */
+  --text-3:#6E7772; --ink3:#6E7772;
+  --accent:#9CB7A2; --accent-ink:#13231A; --accent-soft:#1E2A22;
+  --warning:#D2A35C; --warn:#D2A35C; --warn-soft:#2E2718;
+  --danger:#E2685B;  --danger-soft:#2C201E;
+  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#1B2A22;
+  --fab-bg:#222724;
 
   /* spacing scale */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
@@ -370,6 +370,7 @@ function catIcon(catId){ return CAT_ICON[catId] || 'box'; }
 
 let S = {
   items:[], spaces:[], cats:[], extras:[], events:[], dismissedInsights:{},
+  photoLookupCache:{}, notDuplicates:{},
   meta:{ updatedAt:0, schemaVersion:0 }
 };
 const UI = { tab:'home', space:'all', cat:'all', view:'grid', q:'', zone:'all', shopQ:'' };
@@ -416,6 +417,10 @@ function migrateState(state){
   state.events  = Array.isArray(state.events)  ? state.events  : [];
   state.dismissedInsights = (state.dismissedInsights && typeof state.dismissedInsights === 'object')
     ? state.dismissedInsights : {};
+  state.photoLookupCache = (state.photoLookupCache && typeof state.photoLookupCache === 'object')
+    ? state.photoLookupCache : {};
+  state.notDuplicates = (state.notDuplicates && typeof state.notDuplicates === 'object')
+    ? state.notDuplicates : {};
   state.meta    = state.meta || {};
   if (!state.meta.schemaVersion) state.meta.schemaVersion = 0;
 
@@ -430,6 +435,8 @@ function migrateState(state){
       if (it.familyId === undefined)    it.familyId = null;
       if (it.familyName === undefined)  it.familyName = '';
       if (it.variantName === undefined) it.variantName = '';
+      if (it.barcode === undefined)     it.barcode = '';
+      if (it.photoSource === undefined) it.photoSource = null;
       return it;
     });
     state.meta.schemaVersion = SCHEMA_VERSION;
@@ -451,7 +458,7 @@ function load(){
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(LS_DATA) || 'null'); } catch(e){}
   if (raw && Array.isArray(raw.items)) {
-    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],dismissedInsights:{},meta:{updatedAt:0,schemaVersion:0}}, raw);
+    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],dismissedInsights:{},photoLookupCache:{},notDuplicates:{},meta:{updatedAt:0,schemaVersion:0}}, raw);
   }
   S = migrateState(S);
   if (!S.spaces.length) S.spaces = DEFAULT_SPACES.map(x=>({...x}));
@@ -579,7 +586,7 @@ function compressImageFile(file, maxDim, quality){
 /* Space color is now only used as a small wayfinding dot in the Supplies
    filter chips (not on every card — the redesign asked for less color at
    once). Fixed palette, hashed by space id, so it's stable across renders. */
-const SPACE_PALETTE = ['#4FA89C','#C1683E','#8177B8','#5F84A6','#B8935F','#7C9473'];
+const SPACE_PALETTE = ['#4FA89C','#A67C9E','#8177B8','#5F84A6','#7893A0','#7C9473'];
 function spaceColor(spaceId){
   if (!spaceId) return null;
   let h = 0;
@@ -972,7 +979,9 @@ function renderShoppingTab(){
   const lowSoon = supplyNeeds.filter(n => Number(n.item.qty) > 0);
   const extras = S.extras;
   const insights = computeInsights();
-  const empty = !needs.length && !extras.length;
+  // "nothing to buy" must never coexist with actual suggestions on screen —
+  // if Home OS is proposing items, the list is not empty, full stop.
+  const empty = !needs.length && !extras.length && !insights.length;
 
   function bucket(title, list){
     if (!list.length) return '';
@@ -1126,8 +1135,18 @@ function commitShopAdd(pickedItemId){
   const q = text.toLowerCase();
   const exact = S.items.find(it =>
     (it.name||'').toLowerCase() === q || (it.brand && `${it.brand} ${it.name}`.toLowerCase() === q));
-  if (exact){ addShoppingItemRef(exact.id); }
-  else { S.extras.push({id:uid(), text, got:false}); save(false); }
+  if (exact){ addShoppingItemRef(exact.id); UI.shopQ = ''; render(); return; }
+
+  // No exact hit — fall back to the same partial matcher the live dropdown
+  // uses, so "Enter" never creates a disconnected manual entry when a real
+  // catalog item clearly matches. One match: use it. Several: this is
+  // genuinely ambiguous — ask, don't guess; leave the query and the visible
+  // suggestion list in place instead of silently picking one or adding text.
+  const partial = shoppingMatches(text);
+  if (partial.length === 1){ addShoppingItemRef(partial[0].id); UI.shopQ = ''; render(); return; }
+  if (partial.length > 1){ toast('כמה מוצרים תואמים — בחר אחד מהרשימה למטה'); render(); return; }
+
+  S.extras.push({id:uid(), text, got:false}); save(false);
   UI.shopQ = '';
   render();
 }
@@ -1171,11 +1190,13 @@ function openItem(id, defaults){
       <button type="button" class="btn g" id="photoCamBtn">📷 צלם</button>
       <button type="button" class="btn g" id="photoGalBtn">🖼️ מהגלריה</button>
     </div>
+    ${it ? `<button type="button" class="btn g" id="findPhotoBtn" style="margin-bottom:10px">🔎 חפש תמונה באינטרנט</button>` : ''}
     <input type="file" accept="image/*" capture="environment" id="fPhotoCam" class="hidden">
     <input type="file" accept="image/*" id="fPhotoGal" class="hidden">
 
     <div class="field"><label>שם המוצר *</label><input id="fName" dir="auto" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
     <div class="field"><label>מותג</label><input id="fBrand" dir="auto" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
+    <div class="field"><label>ברקוד (רשות)</label><input id="fBarcode" dir="ltr" inputmode="numeric" value="${it?esc(it.barcode||''):''}" placeholder="למשל: 7290000000000"></div>
     <div class="field">
       <label>משפחת מוצר (רשות)</label>
       <input id="fFamily" dir="auto" list="famList" value="${it?esc(it.familyName||''):''}" placeholder="למשל: AXE דאודורנט">
@@ -1207,7 +1228,7 @@ function openItem(id, defaults){
     function paintPhoto(){
       $('photoPreviewWrap').innerHTML = pendingPhoto
         ? `<div style="position:relative"><img class="photo-box" src="${esc(pendingPhoto)}" alt="">
-             <button type="button" id="photoRemove" class="iconbtn" style="position:absolute;top:6px;left:6px;background:rgba(17,24,39,.55);color:#fff">✕</button></div>`
+             <button type="button" id="photoRemove" class="iconbtn" style="position:absolute;top:6px;left:6px;background:rgba(17,20,19,.6);color:#fff">✕</button></div>`
         : `<div class="photo-empty">אין תמונה</div>`;
       if ($('photoRemove')) $('photoRemove').onclick = () => { pendingPhoto = ''; paintPhoto(); };
     }
@@ -1215,6 +1236,7 @@ function openItem(id, defaults){
 
     $('photoCamBtn').onclick = () => $('fPhotoCam').click();
     $('photoGalBtn').onclick = () => $('fPhotoGal').click();
+    if ($('findPhotoBtn')) $('findPhotoBtn').onclick = () => { closeSheet(); findPhotoForItem(it); };
     async function handlePhotoFile(e){
       const file = e.target.files[0]; e.target.value = '';
       if (!file) return;
@@ -1243,6 +1265,7 @@ function openItem(id, defaults){
 
       const data = {
         name, brand:$('fBrand').value.trim(),
+        barcode: $('fBarcode').value.replace(/[^0-9]/g,'').slice(0,20),
         spaceId:$('fSpace').value, catId:$('fCat').value,
         qty:Math.max(0, parseInt($('fQty').value)||0),
         // blank target keeps the previous value instead of silently becoming 0
@@ -1337,6 +1360,13 @@ function openSettings(){
       <p class="muted" style="margin-bottom:8px">בדיקה חד-פעמית של כל המלאי מול עצמו, למקרה שאותו מוצר נכנס פעמיים בשמות שונים.</p>
       <button class="btn g" id="dedupeBtn">חפש כפילויות</button>
 
+      <div style="margin-top:20px;font-weight:700;font-size:13.5px">תמונות מוצר</div>
+      <p class="muted" style="margin-bottom:8px">
+        חיפוש תמונות אמיתיות מ-Open Food Facts / Open Beauty Facts עבור מוצרים שאין להם תמונה.
+        כל תמונה מוצגת לאישור לפני שהיא נשמרת — שום דבר לא משתנה אוטומטית.
+      </p>
+      <button class="btn g" id="photoBatchBtn">חפש תמונות למוצרים חסרי תמונה</button>
+
       <div style="margin-top:20px;font-weight:700;font-size:13.5px">סנכרון Firebase</div>
       <p class="muted" style="margin-bottom:8px">
         צור פרויקט ב-console.firebase.google.com, הפעל Firestore ו-Anonymous Authentication,
@@ -1369,6 +1399,7 @@ function openSettings(){
       closeSheet(); openSettings();
     };
     $('dedupeBtn').onclick = openDedupe;
+    $('photoBatchBtn').onclick = openPhotoBatch;
     $('fbSave').onclick = () => {
       const raw = $('fbCfg').value.trim();
       if (!raw) return toast('הדבק config');
@@ -1517,6 +1548,163 @@ async function uploadItemPhoto(item, dataUrl){
    paths return the same shape of result to the rest of the app.
    ============================================================ */
 const AI_ENDPOINT = '/api/ai-hub';
+
+/* ---------- Find product photo ----------
+   Deterministic lookup against Open Food Facts / Open Beauty Facts via the
+   server's find_product_photo task — no Gemini involved, works even without
+   a configured key. Barcode first, then brand+name text search. Every call
+   goes through the server (never a direct browser fetch to those hosts),
+   which is what actually enforces the host allowlist/timeouts; the client
+   only ever displays URLs the server already validated. Nothing about an
+   item changes until the user taps a specific candidate — a reject or a
+   "no match" leaves the existing photo (if any) untouched. */
+const PHOTO_CACHE_TTL_MS = 30 * 24 * 3600 * 1000;
+const PHOTO_BATCH_LIMIT = 20;
+
+function photoCacheKey(item){
+  return item.barcode
+    ? 'bc:' + item.barcode
+    : 'q:' + ((item.brand || '') + '|' + (item.name || '')).toLowerCase().trim();
+}
+
+/* returns an array of candidates (possibly empty = confirmed no match), or
+   null on a request-level error (network/server failure, already toasted) */
+async function runProductPhotoSearch(item, opts){
+  opts = opts || {};
+  const key = photoCacheKey(item);
+  if (opts.useCache){
+    const cached = S.photoLookupCache[key];
+    if (cached && (Date.now() - cached.ts) < PHOTO_CACHE_TTL_MS){
+      return cached.negative ? [] : cached.candidates;
+    }
+  }
+  try {
+    const res = await fetch(AI_ENDPOINT, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'find_product_photo', barcode: item.barcode || '', name: item.name, brand: item.brand || '' })
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `שגיאה ${res.status}`);
+    const data = await res.json();
+    const candidates = data.candidates || [];
+    S.photoLookupCache[key] = { ts: Date.now(), negative: !candidates.length, candidates };
+    save(false);
+    return candidates;
+  } catch (err) {
+    toast('חיפוש התמונה נכשל: ' + err.message);
+    return null;
+  }
+}
+
+/* applies a chosen candidate to the item object in place — pure data
+   mutation, no sheet/toast side effects, so both the single-item and the
+   batch flow can share it without one closing the other's UI mid-loop.
+   Tries to fetch+compress the actual bytes for offline display; if that
+   fails (CORS, network), falls back to the remote URL only (still shown
+   online, just not cached for offline). Returns true if the local/offline
+   copy was saved. */
+async function applyFoundPhotoToItem(item, candidate){
+  let dataUrl = '';
+  try {
+    const res = await fetch(candidate.imageUrl, { mode: 'cors' });
+    if (res.ok) dataUrl = await compressImageFile(await res.blob(), 640, 0.7);
+  } catch (e) { /* offline copy unavailable — remote URL still works online */ }
+  if (dataUrl) item.photo = dataUrl;
+  item.photoUrl = candidate.imageUrl;
+  item.photoSource = { source: candidate.source, url: candidate.sourceUrl };
+  if (dataUrl) uploadItemPhoto(item, dataUrl);
+  return !!dataUrl;
+}
+
+async function findPhotoForItem(item){
+  toast('מחפש תמונה…');
+  const candidates = await runProductPhotoSearch(item, { useCache: false });
+  if (candidates === null) return; // error already toasted
+  openPhotoCandidates(item, candidates);
+}
+
+function openPhotoCandidates(item, candidates){
+  if (!candidates.length){
+    sheet(`
+      <h2>לא נמצאה תמונה</h2>
+      <p class="muted bidi" style="margin:8px 0 14px">לא נמצאה תמונה תואמת ב-Open Food Facts / Open Beauty Facts עבור "${esc(item.name)}". אפשר לצלם תמונה ידנית מהעריכה הרגילה.</p>
+      <button class="btn g" id="pcClose">סגירה</button>
+    `, () => { $('pcClose').onclick = closeSheet; });
+    return;
+  }
+  sheet(`
+    <h2>נמצאו תמונות אפשריות</h2>
+    <p class="muted" style="margin-bottom:10px">בחר תמונה אחת, או בטל. שום דבר לא משתנה בלי אישור — התמונה הקיימת (אם יש) לא נמחקת עד שתבחר.</p>
+    <div>${candidates.map((c,i)=>`
+      <div class="group" style="margin-bottom:10px;padding:10px">
+        <img src="${esc(c.imageUrl)}" alt="" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--surface-2)">
+        <div class="muted bidi" style="margin-top:6px">${esc(c.productName||'')}${c.brand?' · '+esc(c.brand):''}</div>
+        <div class="muted" style="margin-bottom:8px">מקור: ${esc(c.source)}</div>
+        <button class="btn a" data-pick="${i}">בחר תמונה זו</button>
+      </div>`).join('')}</div>
+    <button class="btn g" id="pcCancel">ביטול</button>
+  `, () => {
+    $('pcCancel').onclick = closeSheet;
+    document.querySelectorAll('[data-pick]').forEach(btn => btn.onclick = async () => {
+      btn.disabled = true; btn.textContent = 'שומר…';
+      const c = candidates[Number(btn.dataset.pick)];
+      const gotLocal = await applyFoundPhotoToItem(item, c);
+      closeSheet(); save();
+      toast(gotLocal ? 'התמונה נשמרה' : 'התמונה תוצג מהמקור המקוון בלבד (לא נשמרה לצפייה אופליין)');
+    });
+  });
+}
+
+/* batch: only items missing a photo, capped, one network call at a time
+   (never in parallel — this is exactly the "quota limits" case the spec
+   calls out), cache-aware so re-running doesn't repeat recent lookups.
+   Nothing is saved until the user explicitly checks candidates and taps
+   the apply button — matches "selected-item batches only after explicit
+   approval". */
+function openPhotoBatch(){
+  const targets = S.items.filter(i => !photoSrc(i)).slice(0, PHOTO_BATCH_LIMIT);
+  if (!targets.length) return toast('לכל המוצרים כבר יש תמונה');
+  sheet(`
+    <h2>חיפוש תמונות למוצרים חסרי תמונה</h2>
+    <p class="muted" id="pbStatus" style="margin-bottom:10px">בודק ${targets.length} מוצרים…</p>
+    <div id="pbList"></div>
+    <button class="btn g" id="pbClose" style="margin-top:10px">סגירה</button>
+  `, async () => {
+    $('pbClose').onclick = closeSheet;
+    const results = [];
+    for (let i = 0; i < targets.length; i++){
+      const it = targets[i];
+      if (!$('pbStatus')) return; // sheet was closed mid-batch
+      $('pbStatus').textContent = `בודק ${i+1} מתוך ${targets.length}: ${it.name}`;
+      const candidates = await runProductPhotoSearch(it, { useCache: true });
+      if (candidates && candidates.length) results.push({ item: it, candidate: candidates[0] });
+    }
+    if (!$('pbStatus')) return;
+    $('pbStatus').textContent = results.length
+      ? `נמצאו ${results.length} תמונות אפשריות — בחר אילו לשמור`
+      : 'לא נמצאו תמונות תואמות לאף מוצר';
+    $('pbList').innerHTML = results.map((r,idx)=>`
+      <div class="shop-item">
+        <img src="${esc(r.candidate.imageUrl)}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;background:var(--surface-2)">
+        <div class="grow trunc bidi">${esc(r.item.name)}</div>
+        <label class="row" style="gap:6px;flex-shrink:0"><input type="checkbox" class="pbPick" data-idx="${idx}" checked style="width:18px;height:18px"> שמור</label>
+      </div>`).join('');
+    if (results.length){
+      $('pbList').insertAdjacentHTML('beforeend', `<button class="btn a" id="pbApply" style="margin-top:10px">שמירת הנבחרים</button>`);
+      $('pbApply').onclick = async () => {
+        $('pbApply').disabled = true; $('pbApply').textContent = 'שומר…';
+        let n = 0;
+        for (const cb of document.querySelectorAll('.pbPick:checked')){
+          await applyFoundPhotoToItem(results[Number(cb.dataset.idx)].item, results[Number(cb.dataset.idx)].candidate);
+          n++;
+        }
+        save();
+        toast(n ? `${n} תמונות נשמרו` : 'לא נבחר כלום');
+        closeSheet();
+      };
+    }
+  });
+}
+
 const MAX_SHOTS = 4;
 let camStream = null, shots = [];
 /* which mode new items from the current scan/ask session should default
@@ -1781,10 +1969,67 @@ function similarity(nameA, brandA, nameB, brandB){
   if (brandA && brandB && brandA.toLowerCase().trim() === brandB.toLowerCase().trim()) score += 0.15;
   return score;
 }
+
+/* ---------- dedupe safety: flavour/scent/size must never be silently
+   equated with "same product" ----------
+   A high token-overlap score alone can't tell "קפה נמס וניל" from "קפה נמס
+   מוקה" apart — same brand, same base product, only the variant word
+   differs. variantConflict() looks specifically for that: if both items
+   name a *different* known flavour/scent, or a *different* explicit size,
+   they are excluded as candidates regardless of how high the overlap score
+   is. This only ever removes false-positive pairs — it can't turn two
+   truly-identical items into a conflict, since matching or absent variant
+   words never trigger it. */
+const VARIANT_TAGS = [
+  'וניל','מוקה','קרמל','שוקולד','אגוזי לוז','פרג','קוקוס','תפוח','לימון','תות','אפרסק',
+  'מנטה','נענע','מלון','לבנדר','ים תיכון','אוקיינוס','כביסה','ורדים','הדרים','ליים',
+  'משמש','דובדבן','רימון','וניל-מוקה'
+];
+function variantTagsOf(text){
+  const low = (text||'').toLowerCase();
+  return VARIANT_TAGS.filter(tag => low.includes(tag));
+}
+function sizeTokenOf(text){
+  const m = (text||'').match(/(\d+(?:\.\d+)?)\s*(מ"?ל|מ״ל|ml|ליטר|גרם|ג'|g|kg|ק"?ג)/i);
+  if (!m) return null;
+  return m[1] + m[2].toLowerCase().replace(/["'׳]/g,'');
+}
+function variantConflict(a, b){
+  const textA = [a.name, a.variantName, a.note].filter(Boolean).join(' ');
+  const textB = [b.name, b.variantName, b.note].filter(Boolean).join(' ');
+  const tagsA = variantTagsOf(textA), tagsB = variantTagsOf(textB);
+  if (tagsA.length && tagsB.length && !tagsA.some(t => tagsB.includes(t))) return true;
+  const sizeA = sizeTokenOf(textA), sizeB = sizeTokenOf(textB);
+  if (sizeA && sizeB && sizeA !== sizeB) return true;
+  return false;
+}
+
+/* ---------- persisted "not the same product" decisions ----------
+   Keyed by the id pair AND a snapshot of both items' name+brand at
+   decision time — if either item's identity is edited afterward, the
+   snapshot no longer matches and the dismissal stops applying, so a real
+   identity change (e.g. a mislabeled item corrected later) can surface the
+   pair again instead of hiding it forever. */
+function dupIdentitySnapshot(it){
+  return `${(it.name||'').toLowerCase().trim()}::${(it.brand||'').toLowerCase().trim()}`;
+}
+function dupDecisionKey(a, b){ return [a.id, b.id].sort().join('|'); }
+function isNotDuplicate(a, b){
+  const rec = S.notDuplicates[dupDecisionKey(a, b)];
+  if (!rec) return false;
+  const sa = dupIdentitySnapshot(a), sb = dupIdentitySnapshot(b);
+  return (rec.snapA === sa && rec.snapB === sb) || (rec.snapA === sb && rec.snapB === sa);
+}
+function markNotDuplicate(a, b){
+  S.notDuplicates[dupDecisionKey(a, b)] = { snapA: dupIdentitySnapshot(a), snapB: dupIdentitySnapshot(b), ts: Date.now() };
+  save(false);
+}
+
 function fuzzyCandidate(name, brand, excludeId){
   let best = null, bestScore = 0;
   S.items.forEach(it => {
     if (it.id === excludeId) return;
+    if (variantConflict({name, brand}, it)) return;
     const score = similarity(name, brand, it.name, it.brand);
     if (score > bestScore){ bestScore = score; best = it; }
   });
@@ -1795,6 +2040,7 @@ function findDuplicatePairs(){
   for (let i = 0; i < S.items.length; i++){
     for (let j = i + 1; j < S.items.length; j++){
       const a = S.items[i], b = S.items[j];
+      if (variantConflict(a, b) || isNotDuplicate(a, b)) continue;
       const score = similarity(a.name, a.brand, b.name, b.brand);
       if (score >= 0.5) pairs.push({a, b, score, reason:null});
     }
@@ -1855,7 +2101,10 @@ function paintDedupeList(){
     mergeDuplicates(side === 'a' ? p.a.id : p.b.id, side === 'a' ? p.b.id : p.a.id);
   });
   list.querySelectorAll('[data-skip]').forEach(btn => btn.onclick = () => {
-    dedupePairs.splice(Number(btn.dataset.skip), 1);
+    const idx = Number(btn.dataset.skip);
+    const p = dedupePairs[idx];
+    markNotDuplicate(p.a, p.b);
+    dedupePairs.splice(idx, 1);
     paintDedupeList();
   });
 }
@@ -1906,6 +2155,10 @@ async function runAiDedupe(){
         if (existing.has(key)) continue;
         const a = S.items.find(x=>x.id===ids[0]), b = S.items.find(x=>x.id===ids[k]);
         if (!a || !b) continue;
+        // a known flavour/scent/size conflict or a prior "not the same product"
+        // decision overrides the model's own grouping — it never gets to
+        // relitigate either one
+        if (variantConflict(a, b) || isNotDuplicate(a, b)) continue;
         existing.add(key);
         dedupePairs.push({a, b, score:1, reason:g.reason||null});
         added++;

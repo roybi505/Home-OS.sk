@@ -6,11 +6,15 @@
  * from src/index.js.
  *
  * Implemented tasks:
- *   scan_shelf     — photos of a shelf -> candidate inventory items
- *   dedupe_catalog — existing inventory -> groups of likely-duplicate items
- *   parse_command  — free-text Hebrew -> structured proposed operations.
- *                     Returns intent only, never mutates anything server-side;
- *                     the client shows a confirmation sheet before applying.
+ *   scan_shelf         — photos of a shelf -> candidate inventory items
+ *   dedupe_catalog     — existing inventory -> groups of likely-duplicate items
+ *   parse_command      — free-text Hebrew -> structured proposed operations.
+ *                         Returns intent only, never mutates anything server-side;
+ *                         the client shows a confirmation sheet before applying.
+ *   find_product_photo — barcode/brand/name -> real image candidates from
+ *                         Open Food Facts / Open Beauty Facts. Deterministic
+ *                         lookup, no Gemini involved, so it works even when
+ *                         GEMINI_API_KEY isn't configured.
  * Not yet implemented: receipt_scan, price_lookup (501).
  */
 
@@ -18,31 +22,140 @@ const MAX_IMAGES = 4;
 const MAX_BYTES = 6 * 1024 * 1024;
 const MAX_CATALOG = 600;
 
+const GEMINI_TASKS = new Set(['scan_shelf', 'dedupe_catalog', 'parse_command']);
+
 export async function handleAiHub(request, env){
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors() });
   if (request.method !== 'POST')    return json({ error: 'POST only' }, 405);
-
-  const key = env.GEMINI_API_KEY;
-  if (!key) return json({ error: 'GEMINI_API_KEY is not configured on this site' }, 500);
-  const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
 
   let body;
   try { body = await request.json(); }
   catch { return json({ error: 'Invalid JSON body' }, 400); }
 
+  // find_product_photo talks to a public product database, not Gemini — it
+  // must keep working even on a deployment with no GEMINI_API_KEY set.
+  if (body.task === 'find_product_photo') return findProductPhoto(body);
+
+  if (GEMINI_TASKS.has(body.task)) {
+    const key = env.GEMINI_API_KEY;
+    if (!key) return json({ error: 'GEMINI_API_KEY is not configured on this site' }, 500);
+    const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+    switch (body.task) {
+      case 'scan_shelf':     return scanShelf(body, key, model);
+      case 'dedupe_catalog': return dedupeCatalog(body, key, model);
+      case 'parse_command':  return parseCommand(body, key, model);
+    }
+  }
+
   switch (body.task) {
-    case 'scan_shelf':
-      return scanShelf(body, key, model);
-    case 'dedupe_catalog':
-      return dedupeCatalog(body, key, model);
-    case 'parse_command':
-      return parseCommand(body, key, model);
     case 'receipt_scan':
     case 'price_lookup':
       return json({ error: `Task "${body.task}" is not implemented yet` }, 501);
     default:
-      return json({ error: 'Unknown or missing "task"', supported: ['scan_shelf', 'dedupe_catalog', 'parse_command'] }, 400);
+      return json({
+        error: 'Unknown or missing "task"',
+        supported: ['scan_shelf', 'dedupe_catalog', 'parse_command', 'find_product_photo']
+      }, 400);
   }
+}
+
+/* ---------------- find_product_photo ----------------
+   Looks up real product photos from Open Food Facts (food) and Open Beauty
+   Facts (cosmetics/hygiene) — both free, keyless, and running the same
+   "Product Opener" software, so their API shape is identical. Barcode is
+   tried first (exact match); brand+name+variant text search is the
+   fallback. Every returned image URL is re-validated against an explicit
+   host allowlist before it ever reaches the client — this is a lookup, not
+   an open proxy: we never fetch/relay arbitrary URLs, only URLs the product
+   database itself returned, and only from hosts we recognize. */
+
+const PHOTO_SOURCES = [
+  { label: 'Open Food Facts',   base: 'https://world.openfoodfacts.org' },
+  { label: 'Open Beauty Facts', base: 'https://world.openbeautyfacts.org' }
+];
+const PHOTO_ALLOWED_HOSTS = new Set([
+  'world.openfoodfacts.org',   'images.openfoodfacts.org',   'static.openfoodfacts.org',
+  'world.openbeautyfacts.org', 'images.openbeautyfacts.org', 'static.openbeautyfacts.org'
+]);
+const PHOTO_FETCH_TIMEOUT_MS = 8000;
+
+function isAllowedImageUrl(u){
+  try {
+    const p = new URL(u);
+    return p.protocol === 'https:' && PHOTO_ALLOWED_HOSTS.has(p.hostname);
+  } catch { return false; }
+}
+
+async function fetchJsonSafe(url){
+  let res;
+  try {
+    res = await fetch(url, {
+      signal: AbortSignal.timeout(PHOTO_FETCH_TIMEOUT_MS),
+      headers: { 'User-Agent': 'HomeOS/2.0.5 (household inventory app; contact via GitHub repo)' }
+    });
+  } catch { return null; } // network error, timeout, DNS, etc — treated as "no match", never surfaced as a crash
+  if (!res.ok) return null;
+  try { return await res.json(); } catch { return null; }
+}
+
+function candidateFromProduct(p, label, base, fallbackCode){
+  if (!p) return null;
+  const img = p.image_front_url || p.image_url
+    || (p.selected_images && p.selected_images.front && p.selected_images.front.display
+        && Object.values(p.selected_images.front.display)[0])
+    || '';
+  if (!img || !isAllowedImageUrl(img)) return null;
+  const code = p.code || fallbackCode || '';
+  return {
+    imageUrl: img,
+    sourceUrl: code ? `${base}/product/${encodeURIComponent(code)}` : base,
+    source: label,
+    productName: String(p.product_name || '').trim().slice(0, 120),
+    brand: String(p.brands || '').trim().slice(0, 80)
+  };
+}
+
+async function findProductPhoto(body){
+  const barcode = String(body.barcode || '').replace(/[^0-9]/g, '').slice(0, 20);
+  const name    = String(body.name || '').trim().slice(0, 80);
+  const brand   = String(body.brand || '').trim().slice(0, 60);
+  const variant = String(body.variant || '').trim().slice(0, 60);
+
+  if (!barcode && !name) return json({ error: 'Need at least a barcode or a product name' }, 400);
+
+  let candidates = [];
+  let matchType = 'none';
+
+  if (barcode) {
+    for (const src of PHOTO_SOURCES) {
+      const data = await fetchJsonSafe(`${src.base}/api/v2/product/${encodeURIComponent(barcode)}.json`);
+      if (data && data.status === 1 && data.product) {
+        const c = candidateFromProduct(data.product, src.label, src.base, barcode);
+        if (c) { candidates.push(c); matchType = 'barcode'; break; }
+      }
+    }
+  }
+
+  if (!candidates.length) {
+    const q = [brand, name, variant].filter(Boolean).join(' ').trim();
+    if (q) {
+      for (const src of PHOTO_SOURCES) {
+        const data = await fetchJsonSafe(
+          `${src.base}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=1&page_size=5`
+        );
+        const products = (data && Array.isArray(data.products)) ? data.products : [];
+        for (const p of products) {
+          const c = candidateFromProduct(p, src.label, src.base, p.code);
+          if (c) candidates.push(c);
+          if (candidates.length >= 3) break;
+        }
+        if (candidates.length) { matchType = 'search'; break; }
+      }
+    }
+  }
+
+  return json({ candidates: candidates.slice(0, 3), matchType });
 }
 
 /* ---------------- scan_shelf ---------------- */
