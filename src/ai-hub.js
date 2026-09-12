@@ -121,7 +121,9 @@ function candidateFromProduct(p, label, base, fallbackCode){
     sourceUrl: code ? `${base}/product/${encodeURIComponent(code)}` : base,
     source: label,
     productName: String(p.product_name || '').trim().slice(0, 120),
-    brand: String(p.brands || '').trim().slice(0, 80)
+    brand: String(p.brands || '').trim().slice(0, 80),
+    license: `${label} contributors — ODbL / CC-BY-SA`,
+    licenseUrl: `${base}/legal`
   };
 }
 
@@ -135,15 +137,14 @@ async function findProductPhoto(body){
 
   let candidates = [];
   let matchType = 'none';
-  let sawSuccess = false;   // at least one source genuinely answered, even if empty
+  let anyFailure = false;   // any attempted source/path (barcode or search) that did NOT genuinely answer
   let sawRateLimit = false; // at least one source said 429
 
   if (barcode) {
     for (const src of PHOTO_SOURCES) {
       const { status, data } = await fetchJsonSafe(`${src.base}/api/v2/product/${encodeURIComponent(barcode)}.json`);
-      if (status === 'rate_limited') { sawRateLimit = true; continue; }
-      if (status !== 'ok') continue;
-      sawSuccess = true;
+      if (status === 'rate_limited') { sawRateLimit = true; anyFailure = true; continue; }
+      if (status !== 'ok') { anyFailure = true; continue; }
       if (data && data.status === 1 && data.product) {
         const c = candidateFromProduct(data.product, src.label, src.base, barcode);
         if (c) { candidates.push(c); matchType = 'barcode'; break; }
@@ -158,9 +159,8 @@ async function findProductPhoto(body){
         const { status, data } = await fetchJsonSafe(
           `${src.base}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=1&page_size=5`
         );
-        if (status === 'rate_limited') { sawRateLimit = true; continue; }
-        if (status !== 'ok') continue;
-        sawSuccess = true;
+        if (status === 'rate_limited') { sawRateLimit = true; anyFailure = true; continue; }
+        if (status !== 'ok') { anyFailure = true; continue; }
         const products = Array.isArray(data && data.products) ? data.products : [];
         for (const p of products) {
           const c = candidateFromProduct(p, src.label, src.base, p.code);
@@ -175,12 +175,15 @@ async function findProductPhoto(body){
   if (candidates.length) return json({ candidates: candidates.slice(0, 3), matchType });
 
   // Zero candidates: only report this as a genuine "no match" (the shape the
-  // client is allowed to cache as negative) when at least one source truly
-  // answered. Otherwise this is an outage/rate-limit, not a fact about the
-  // product, and must come back as a real error so the client never caches
-  // it and the batch flow knows to stop rather than burn through every
-  // remaining item against a database that's already struggling.
-  if (sawSuccess) return json({ candidates: [], matchType: 'none' });
+  // client is allowed to cache as negative) when EVERY attempted source/path
+  // truly answered — a partial failure (one source down, another genuinely
+  // empty) must NOT be treated as a confident negative, because the down
+  // source might have had the match. Otherwise this is an outage/rate-limit,
+  // not a fact about the product, and must come back as a real error so the
+  // client never caches it and the batch flow knows to stop rather than burn
+  // through every remaining item against a database that's already
+  // struggling.
+  if (!anyFailure) return json({ candidates: [], matchType: 'none' });
   if (sawRateLimit) {
     return json({ error: 'Product database is rate-limiting requests — try again in a few minutes', candidates: [], matchType: 'rate_limited' }, 429);
   }

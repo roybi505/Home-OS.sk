@@ -5,10 +5,11 @@ PR: https://github.com/roybi505/Home-OS.sk/pull/2
 Issue: https://github.com/roybi505/Home-OS.sk/issues/1
 Coordination: `docs/agent-sync/` on `coordination/home-os` (Claude/Codex/Roy
 cross-agent protocol) — task HOME-006-R1, see that section below.
-Status: **HOME-006-R1 implemented — in review** (original 9-item 2.0.5 scope
-is Done; HOME-006 was Codex's first follow-up review pass; HOME-006-R1 is
-the revision addressing Codex's CHANGES_REQUESTED findings on HOME-006 — see
-`docs/AI_HANDOFF.md` for what still needs Codex/Roy sign-off)
+Status: **HOME-006-R2 implemented — in review** (original 9-item 2.0.5 scope
+is Done; HOME-006 was Codex's first follow-up review pass, HOME-006-R1 its
+revision, HOME-006-R2 is the revision addressing Codex's second
+CHANGES_REQUESTED findings on HOME-006-R1 — see `docs/AI_HANDOFF.md` for
+what still needs Codex/Roy sign-off)
 
 ## Authoritative scope (verbatim from the approved specification)
 
@@ -441,3 +442,167 @@ verified from this sandbox (egress to `world.openfoodfacts.org` remains
 policy-blocked) — same recommendation as before: smoke-test against the
 real preview before calling this fully closed. The `VARIANT_TAGS`
 scope-boundary note from HOME-006 still applies unchanged.
+
+---
+
+# HOME-006-R2 — Codex's second CHANGES_REQUESTED revision
+
+Task ID: HOME-006-R2, tracked via `docs/agent-sync/` on `coordination/home-os`
+(full spec in `NEXT.md` there). Codex re-reviewed HOME-006-R1 at commit
+`6adcaa0789dbe173c246726896d8ba43b0475b8e` by actually executing the shipped
+functions again, and found the "confirmed online-only" design itself was
+wrong, the partial-failure tracking was still too lenient, and — critically —
+that the earlier "service worker interference" was misdiagnosed as a
+test-harness artifact when it is real shipped behavior. All three fixed here,
+plus the additional download-hardening items from the original spec that
+hadn't been finished yet.
+
+## What was wrong, and the fix
+
+1. **"Confirmed online-only" was an unwanted automatic fallback, not a
+   legitimate outcome.** R1's `applyFoundPhotoToItem()` treated any
+   fetch-couldn't-complete case (CORS/network/timeout) as an implicitly
+   approved "online-only selection" — clearing the existing local photo and
+   substituting the new remote URL without ever asking. Codex reproduced
+   this directly: calling the function with a mocked network rejection and
+   an existing local photo returned `applied:true` and **cleared the
+   existing photo** — exactly the "preserve the existing photo on failed
+   replacement" requirement being violated. Fixed by removing the
+   online-only branch from `applyFoundPhotoToItem()` entirely: a new
+   `downloadPhotoBytes()` helper reports *every* failure (network, CORS,
+   timeout, non-2xx, any redirect, wrong MIME, oversized, decode failure)
+   identically as `{ok:false}`, and `applyFoundPhotoToItem()` only ever
+   mutates the item on a fully downloaded, verified, offline-storable copy
+   — any failure leaves `photo`/`photoUrl`/`photoSource` completely
+   untouched. Online-only display is now a separate function,
+   `applyOnlinePhotoOnly()`, reachable only through a new explicit
+   confirmation sheet (`confirmOnlineOnlyPhoto()`) that is itself only
+   offered when the item has **no existing photo to preserve** — if a
+   photo already exists, a failed download just shows a "nothing changed"
+   toast and nothing else happens.
+2. **Zero-candidate results were cacheable as long as *any* source
+   answered, not *all* of them.** `findProductPhoto()`'s `sawSuccess` flag
+   went true the moment one source gave any genuine answer — including an
+   empty one — so a Food-source 503 plus a Beauty-source genuine-empty
+   still came back as a cacheable HTTP 200/`matchType:'none'`, exactly
+   Codex's reproduced repro. The down source might have had the actual
+   match; treating the pair as a confident negative was wrong. Fixed by
+   inverting the tracked flag to `anyFailure` (true the moment *any*
+   attempted source/path — barcode or search — doesn't genuinely answer):
+   a zero-candidate result is now only reported as a real, cacheable
+   `none` when every attempted source/path succeeded. Any failure anywhere
+   in the attempt forces the honest 502/429 error shape instead, so the
+   client's existing `!res.ok` guard refuses to cache it.
+3. **`public/sw.js` really does serve cached `index.html` on any failed
+   GET, including cross-origin product-image fetches — this was shipped
+   behavior, not a test artifact.** R1 disabled service workers in the
+   Playwright context to make the photo-download tests behave and recorded
+   that as a "test-harness correction," reasoning the SW's existing
+   network-first-with-cache-fallback was "unchanged and correct on its own
+   terms." Codex correctly rejected that framing: with service workers
+   left enabled, a real user's browser really would swallow a failed
+   cross-origin image fetch and hand back the app shell's HTML instead of
+   a real network error — which is exactly the shape `downloadPhotoBytes()`
+   has to tell apart from a genuine response. Fixed the actual fetch
+   handler in `public/sw.js`: it now returns immediately or any
+   cross-origin request (`if (url.origin !== self.location.origin)
+   return;`), so those requests hit the real network completely
+   unintercepted — no ad-hoc regex exemption list needed anymore, the
+   same-origin check already covers Firebase/Google/product-image hosts.
+   The `index.html`-on-failure fallback itself is now also restricted to
+   actual page navigations (`req.mode === 'navigate'`) rather than any
+   same-origin GET, so a failed same-origin API/asset request no longer
+   silently turns into HTML either.
+4. **Download hardening finished, not just left as a TODO:**
+   - `downloadPhotoBytes()` now streams the response body via
+     `res.body.getReader()`, keeping a running byte total and aborting the
+     read the moment it crosses `PHOTO_MAX_BYTES`, instead of buffering the
+     entire response with `res.blob()` first and checking its size only
+     afterward.
+   - The content-type check is now an explicit raster allowlist
+     (`PHOTO_ALLOWED_MIME`: jpeg/png/webp/gif) instead of a loose
+     `image/*` prefix check, which would also have accepted
+     `image/svg+xml` — a vector format that can carry script.
+   - The initial candidate URL is validated against the host allowlist
+     before ever being fetched, and the fetch itself uses `redirect:
+     'manual'` so any redirect comes back as an inert `opaqueredirect`
+     response and is rejected outright — "rejecting all redirects" per the
+     spec's own accepted simplification, rather than trying to validate
+     wherever a redirect might lead.
+   - Every rejection path (bad MIME, oversized, redirect, decode failure)
+     already left the item’s existing `photo`/`photoUrl`/`photoSource`
+     completely untouched, per item 1 above.
+   - `candidateFromProduct()` (`src/ai-hub.js`) now also returns
+     `license`/`licenseUrl` (attribution text + a link to the source
+     database's own legal/license page); the client stores it on
+     `item.photoSource` and shows it under the source link in the
+     candidate sheet.
+
+## Tests added / updated
+
+- `tests/photo-lookup.test.mjs` — four new cases exercising exactly the
+  partial-failure combinations Codex's review named: mixed empty+503
+  (Codex's literal repro), mixed empty+429, barcode-empty-then-
+  search-failure, and malformed-response+genuine-empty. All confirm the
+  overall result is a real error (`unavailable`/`rate_limited`), never a
+  cacheable `none`. **21/21 passing** in this file now (13 R1 + 4 new + the
+  pre-existing all-503/all-429/network-error/malformed/genuine-empty/mixed-
+  health cases, unchanged and still passing).
+- `tests/shopping-match.test.mjs` (11/11) and `tests/dedupe.test.mjs`
+  (9/9) — unchanged, still green. `npm test` now runs 41/41.
+- No new Node-level unit test file for `applyFoundPhotoToItem`/`sw.js`
+  themselves — both depend on real `fetch`/Service Worker/DOM behavior in
+  a way the existing brace-matching Node-`vm` extraction pattern doesn't
+  cover well; verified instead via Playwright (below), consistent with how
+  the photo-download path was verified in HOME-006-R1.
+
+## What was verified
+
+Playwright (Chromium, mobile viewport, **service workers left enabled this
+time** — the whole point of this pass was to verify the real `sw.js`, not
+work around it):
+
+- **The actual R2 finding #3 bug, directly**: with the real `sw.js`
+  registered and active, issuing a `fetch()` to a mocked-to-fail
+  cross-origin image URL from the page throws a real `Failed to fetch`
+  error — it is not silently resolved into the cached `index.html` app
+  shell. Confirmed this fails on the pre-fix `sw.js` reasoning (any failed
+  GET falls back to `caches.match('./index.html')`) and passes on the
+  fixed same-origin-only handler.
+- **Preservation on ANY failure, with an existing photo**: wrong-MIME,
+  oversized, and unreachable/network-failure candidates against an item
+  that already has a downloaded local photo all leave
+  `photo`/`photoUrl`/`photoSource` byte-for-byte unchanged from baseline —
+  checked after each case, not just the first.
+- **Explicit online-only confirmation, only for photo-less items**: an
+  unreachable candidate against an item with an existing photo does *not*
+  show the online-only confirmation sheet at all (nothing to offer — the
+  photo was already preserved). The same unreachable candidate against an
+  item with *no* existing photo leaves the item fully unmodified until the
+  new confirmation sheet is explicitly accepted; accepting it sets
+  `photoUrl` and the `onlineOnly` flag on `photoSource` while `photo` stays
+  empty (never silently claimed as saved for offline use).
+- **Valid image**: still downloads, compresses, saves offline, persists
+  after a full reload, and now also carries `license`/`licenseUrl` in
+  `photoSource` — no regression from the streaming/MIME-allowlist rewrite.
+- **Batch flow** (`openPhotoBatch()`): re-verified with one always-good and
+  one always-unreachable fixture item — the good item gets its offline
+  photo, the unreachable one is left with `photo:''`/`photoUrl:''`
+  (rejected, not silently given an online-only URL) — confirms the batch
+  path never triggers the new explicit-confirmation flow on its own,
+  matching "selected-item batches only after explicit approval" from the
+  original spec.
+- Full `npm test` (41/41) re-run clean on this commit.
+
+## Known limitations (carried over / still true)
+
+Live network path to Open Food Facts/Open Beauty Facts is still not
+verified from this sandbox (egress to `world.openfoodfacts.org` remains
+policy-blocked) — same recommendation as before: smoke-test against the
+real preview before calling this fully closed. The `VARIANT_TAGS`
+scope-boundary note from HOME-006 still applies unchanged. The
+`license`/`licenseUrl` attribution text is a reasonable summary of Open
+Food/Beauty Facts' actual dual data/image licensing (ODbL for data,
+CC-BY-SA for most contributed photos) rather than a per-photo verified
+license lookup — worth a second look if per-image licensing ever needs to
+be exact rather than a general attribution line.

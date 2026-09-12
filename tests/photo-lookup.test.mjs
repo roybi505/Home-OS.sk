@@ -87,6 +87,62 @@ function jsonResponse(status, body) {
   restoreFetch();
 }
 
+// --- 6b. Codex's HOME-006-R2 exact repro: Food source 503, Beauty source
+//     genuinely empty — must NOT be cached as a negative (the down source
+//     might have had the match). ---
+{
+  mockFetch(async (url) => {
+    if (String(url).includes('openfoodfacts')) return new Response('down', { status: 503 });
+    return jsonResponse(200, { products: [] }); // Open Beauty Facts genuinely empty
+  });
+  const res = await handleAiHub(req({ task: 'find_product_photo', name: 'סבון', brand: 'Palmolive' }));
+  const body = await res.json();
+  check('mixed empty+503: NOT a cacheable 200/none', res.ok, false);
+  check('mixed empty+503: matchType signals unavailability, not a genuine none', body.matchType, 'unavailable');
+  restoreFetch();
+}
+
+// --- 6c. mixed empty+429: same principle, rate-limit instead of a hard error ---
+{
+  mockFetch(async (url) => {
+    if (String(url).includes('openfoodfacts')) return new Response('slow down', { status: 429 });
+    return jsonResponse(200, { products: [] });
+  });
+  const res = await handleAiHub(req({ task: 'find_product_photo', name: 'שמן זית', brand: 'Yad Mordechai' }));
+  const body = await res.json();
+  check('mixed empty+429: HTTP 429, not cached as none', res.status, 429);
+  check('mixed empty+429: matchType is rate_limited', body.matchType, 'rate_limited');
+  restoreFetch();
+}
+
+// --- 6d. barcode genuinely empty on both sources, but the search fallback
+//     then hits a failure — the earlier genuine barcode-empty result must
+//     not let the overall answer be treated as a confident negative. ---
+{
+  mockFetch(async (url) => {
+    if (String(url).includes('/api/v2/product/')) return jsonResponse(200, { status: 0 }); // barcode: genuinely not found
+    return new Response('down', { status: 503 }); // search fallback: both sources fail
+  });
+  const res = await handleAiHub(req({ task: 'find_product_photo', barcode: '1111111111111', name: 'מוצר בדיקה', brand: 'Test' }));
+  const body = await res.json();
+  check('barcode-empty+search-failure: NOT cached as a genuine none', res.ok, false);
+  check('barcode-empty+search-failure: matchType signals unavailability', body.matchType, 'unavailable');
+  restoreFetch();
+}
+
+// --- 6e. malformed response from one source, genuinely empty from the other ---
+{
+  mockFetch(async (url) => {
+    if (String(url).includes('openfoodfacts')) return new Response('<html>oops</html>', { status: 200 });
+    return jsonResponse(200, { products: [] });
+  });
+  const res = await handleAiHub(req({ task: 'find_product_photo', name: 'מגבונים', brand: 'Huggies' }));
+  const body = await res.json();
+  check('malformed+empty: NOT cached as a genuine none', res.ok, false);
+  check('malformed+empty: matchType signals unavailability', body.matchType, 'unavailable');
+  restoreFetch();
+}
+
 // --- 6. one source down, the other healthy: healthy-source candidates survive ---
 {
   mockFetch(async (url) => {

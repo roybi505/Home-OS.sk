@@ -1588,6 +1588,10 @@ function isAllowedPhotoUrl(u){
   try { const p = new URL(u); return p.protocol === 'https:' && PHOTO_ALLOWED_HOSTS.has(p.hostname); }
   catch { return false; }
 }
+/* Raster formats only — explicit allowlist, not a loose "image/*" prefix
+   check (which would also accept image/svg+xml, a vector format that can
+   carry script). */
+const PHOTO_ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 function photoCacheKey(item){
   return item.barcode
@@ -1623,57 +1627,105 @@ async function runProductPhotoSearch(item, opts){
   }
 }
 
-/* applies a chosen candidate to the item object in place — pure data
-   mutation, no sheet/toast side effects, so both the single-item and the
-   batch flow can share it without one closing the other's UI mid-loop.
-   Tries to fetch+compress the actual bytes for offline display; if that
-   fails (CORS, network), falls back to the remote URL only (still shown
-   online, just not cached for offline). Returns true if the local/offline
-   copy was saved. */
-/* Two distinct outcomes, not one blurred into the other:
-   - REJECTED: we got a response but it fails validation (wrong content
-     type, oversized, or redirected off the allowlist) — something is
-     actually wrong with what came back, so nothing about the item changes
-     at all; the previous photo/photoUrl/photoSource are left exactly as
-     they were. This is the "preserve the previous photo on failed
-     replacement" case.
-   - APPLIED, online-only: the fetch itself couldn't even complete (CORS
-     block, network, unreachable) — common and expected for a cross-origin
-     image with no permissive CORS headers. The candidate URL was already
-     validated server-side, so this is a legitimate, user-approved
-     "confirmed online-only selection," not a failure: the old photo is
-     cleared so photoSrc() actually shows the new remote photo instead of a
-     stale local one — display and metadata agree either way.
-   Returns {applied, offline}. */
-async function applyFoundPhotoToItem(item, candidate){
-  let dataUrl = '';
-  let rejected = false;
+/* Downloads and validates a candidate image's actual bytes — pure fetch,
+   no item mutation, so a caller can decide what to do with the item only
+   once it knows whether this genuinely succeeded. Every failure path
+   (network/CORS/timeout, non-2xx, any redirect, wrong content-type,
+   oversized, decode failure) is reported identically as {ok:false} — there
+   is no "couldn't verify but let's show it online anyway" branch in here;
+   that decision is the caller's, made explicitly, never implicit in this
+   function. Streams the response body with a running byte count instead of
+   buffering the whole thing first, so an oversized response is caught
+   before it's fully in memory. */
+async function downloadPhotoBytes(url){
+  if (!isAllowedPhotoUrl(url)) return { ok: false, reason: 'url' };
+  let res;
   try {
-    const res = await fetch(candidate.imageUrl, { mode: 'cors', signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const finalUrlOk = !res.url || isAllowedPhotoUrl(res.url);
-      const contentType = res.headers.get('content-type') || '';
-      const declaredLen = Number(res.headers.get('content-length') || 0);
-      if (!finalUrlOk || !contentType.startsWith('image/') || (declaredLen && declaredLen > PHOTO_MAX_BYTES)) {
-        rejected = true;
-      } else {
-        const blob = await res.blob();
-        if (blob.size > PHOTO_MAX_BYTES) rejected = true;
-        else dataUrl = await compressImageFile(blob, 640, 0.7);
-      }
+    // redirect:'manual' -> any redirect comes back as an opaque, unusable
+    // "opaqueredirect" response instead of being followed. Rejecting every
+    // redirect outright (rather than trying to validate where it leads) is
+    // the deliberately simple, safe choice here.
+    res = await fetch(url, { mode: 'cors', redirect: 'manual', signal: AbortSignal.timeout(10000) });
+  } catch (e) { return { ok: false, reason: 'network' }; }
+  if (res.type === 'opaqueredirect') return { ok: false, reason: 'redirect' };
+  if (!res.ok) return { ok: false, reason: 'http' };
+  const contentType = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (!PHOTO_ALLOWED_MIME.has(contentType)) return { ok: false, reason: 'mime' };
+  const declaredLen = Number(res.headers.get('content-length') || 0);
+  if (declaredLen && declaredLen > PHOTO_MAX_BYTES) return { ok: false, reason: 'size' };
+
+  let blob;
+  if (res.body && res.body.getReader) {
+    const reader = res.body.getReader();
+    const chunks = [];
+    let total = 0;
+    while (true) {
+      let step;
+      try { step = await reader.read(); }
+      catch (e) { return { ok: false, reason: 'network' }; }
+      if (step.done) break;
+      total += step.value.length;
+      if (total > PHOTO_MAX_BYTES) { reader.cancel().catch(()=>{}); return { ok: false, reason: 'size' }; }
+      chunks.push(step.value);
     }
-    // A non-ok response falls through as "couldn't verify" (online-only
-    // fallback), same as the network/CORS errors caught below — only an
-    // actually-received-but-invalid response is a hard rejection.
-  } catch (e) { /* CORS-blocked or unreachable — online-only fallback still applies below */ }
+    blob = new Blob(chunks, { type: contentType });
+  } else {
+    // Environments without a streamable response body: still bounded by
+    // the declared-length check above; re-check the actual size too.
+    try { blob = await res.blob(); } catch (e) { return { ok: false, reason: 'network' }; }
+    if (blob.size > PHOTO_MAX_BYTES) return { ok: false, reason: 'size' };
+  }
 
-  if (rejected) return { applied: false, offline: false };
+  try { return { ok: true, dataUrl: await compressImageFile(blob, 640, 0.7) }; }
+  catch (e) { return { ok: false, reason: 'decode' }; }
+}
 
-  item.photo = dataUrl || '';
+/* Applies a chosen candidate to the item object in place. Only ever
+   mutates the item on a fully verified, downloaded, offline-storable copy
+   — ANY download failure (network, CORS, timeout, HTTP error, invalid
+   content, decode failure) leaves the item completely untouched: existing
+   photo/photoUrl/photoSource survive exactly as they were. There is no
+   automatic "show it online-only instead" fallback here — that is a
+   separate, explicit user choice (see confirmOnlineOnlyPhoto below), only
+   ever offered for items that have no photo at all to preserve.
+   Returns {applied, offline, reason}. */
+async function applyFoundPhotoToItem(item, candidate){
+  const result = await downloadPhotoBytes(candidate.imageUrl);
+  if (!result.ok) return { applied: false, offline: false, reason: result.reason };
+
+  item.photo = result.dataUrl;
   item.photoUrl = candidate.imageUrl;
-  item.photoSource = { source: candidate.source, url: candidate.sourceUrl };
-  if (dataUrl) uploadItemPhoto(item, dataUrl);
-  return { applied: true, offline: !!dataUrl };
+  item.photoSource = { source: candidate.source, url: candidate.sourceUrl, license: candidate.license || '', licenseUrl: candidate.licenseUrl || '' };
+  uploadItemPhoto(item, result.dataUrl);
+  return { applied: true, offline: true };
+}
+
+/* The one place an item can end up with photoUrl set but no local offline
+   copy — and only ever reached through an explicit confirmation click from
+   the user (see confirmOnlineOnlyPhoto), never automatically, and only
+   offered when the item had no existing photo to begin with (so nothing is
+   being cleared/overwritten here — there was nothing to preserve). */
+function applyOnlinePhotoOnly(item, candidate){
+  item.photo = '';
+  item.photoUrl = candidate.imageUrl;
+  item.photoSource = { source: candidate.source, url: candidate.sourceUrl, license: candidate.license || '', licenseUrl: candidate.licenseUrl || '', onlineOnly: true };
+}
+
+function confirmOnlineOnlyPhoto(item, candidate){
+  sheet(`
+    <h2>לא ניתן היה להוריד את התמונה</h2>
+    <p class="muted bidi" style="margin:8px 0 14px">התמונה לא נשמרה במכשיר (בעיית רשת או הרשאות בין־מקורות). אפשר להציג אותה ישירות מהמקור המקוון בלבד — היא לא תישמר לצפייה אופליין ותלויה בחיבור לאינטרנט בכל פעם שהפריט מוצג.</p>
+    <button class="btn a" id="pcOnlineOnly">הצג מהמקור המקוון בלבד</button>
+    <button class="btn g" id="pcOnlineCancel" style="margin-top:8px">ביטול</button>
+  `, () => {
+    $('pcOnlineCancel').onclick = closeSheet;
+    $('pcOnlineOnly').onclick = () => {
+      applyOnlinePhotoOnly(item, candidate);
+      save();
+      closeSheet();
+      toast('התמונה תוצג מהמקור המקוון בלבד (לא נשמרה לצפייה אופליין)');
+    };
+  });
 }
 
 async function findPhotoForItem(item){
@@ -1699,7 +1751,8 @@ function openPhotoCandidates(item, candidates){
       <div class="group" style="margin-bottom:10px;padding:10px">
         <img src="${esc(c.imageUrl)}" alt="" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--surface-2)">
         <div class="muted bidi" style="margin-top:6px">${esc(c.productName||'')}${c.brand?' · '+esc(c.brand):''}</div>
-        <div class="muted" style="margin-bottom:8px">מקור: <a href="${esc(c.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(c.source)}</a></div>
+        <div class="muted" style="margin-bottom:2px">מקור: <a href="${esc(c.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(c.source)}</a></div>
+        ${c.license ? `<div class="muted" style="margin-bottom:8px;font-size:12px">${esc(c.license)}${c.licenseUrl ? ` · <a href="${esc(c.licenseUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">פרטי רישיון</a>` : ''}</div>` : ''}
         <button class="btn a" data-pick="${i}">בחר תמונה זו</button>
       </div>`).join('')}</div>
     <button class="btn g" id="pcCancel">ביטול</button>
@@ -1708,11 +1761,24 @@ function openPhotoCandidates(item, candidates){
     document.querySelectorAll('[data-pick]').forEach(btn => btn.onclick = async () => {
       btn.disabled = true; btn.textContent = 'שומר…';
       const c = candidates[Number(btn.dataset.pick)];
+      const hadPhoto = !!photoSrc(item);
       const result = await applyFoundPhotoToItem(item, c);
-      closeSheet();
-      if (!result.applied){ toast('התמונה לא עברה אימות — שום דבר לא השתנה'); return; }
-      save();
-      toast(result.offline ? 'התמונה נשמרה (כולל לצפייה אופליין)' : 'התמונה תוצג מהמקור המקוון בלבד (לא נשמרה לצפייה אופליין)');
+      if (result.applied){
+        closeSheet();
+        save();
+        toast('התמונה נשמרה (כולל לצפייה אופליין)');
+        return;
+      }
+      // Download failed for any reason — the item is untouched either way.
+      if (hadPhoto){
+        closeSheet();
+        toast('לא ניתן היה להוריד את התמונה — התמונה הקיימת נשארה ללא שינוי');
+        return;
+      }
+      // No existing photo to preserve: offer online-only display as a
+      // separate, explicit confirmation — never an automatic fallback.
+      btn.disabled = false; btn.textContent = 'בחר תמונה זו';
+      confirmOnlineOnlyPhoto(item, c);
     });
   });
 }
