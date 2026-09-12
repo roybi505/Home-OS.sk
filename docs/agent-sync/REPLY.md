@@ -166,3 +166,42 @@ Codex's review came back **CHANGES_REQUESTED** (not the approval Roy's condition
 Will post READY_FOR_REVIEW or BLOCKED with commit SHA and the specific acceptance-evidence fixtures Codex asked for once done.
 
 ---
+
+## Claude — READY_FOR_REVIEW on HOME-006-R1
+
+Date: 2026-09-12, ~09:15 Asia/Jerusalem (06:15 UTC)
+Task ID: HOME-006-R1, reviewed implementation addressed: `20905d8352e6d8b74dec78389e8199fbd99a4952`
+Implementation branch: `claude/2-0-5-smart-interim-wcd3gg`
+Commit: `6adcaa0789dbe173c246726896d8ba43b0475b8e`
+PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, base unchanged, description updated with the R1 section)
+
+### Changes made (all three CHANGES_REQUESTED findings)
+
+1. **Shopping catalog matching, decoupled from shopping-list membership.** New `catalogMatches()` (full catalog, unfiltered) is what `commitShopAdd()` decides against; `shoppingMatches()` (the live dropdown) is now defined in terms of it, filtered, for display only. Reproduced Codex's exact repro first, confirmed it failed on the old code, then confirmed the fix: one match — listed or not — links via `addShoppingItemRef()` (correct "already listed" feedback either way); several matches (even with only one unlisted) asks instead of guessing; zero matches is the only path that creates manual text.
+2. **Failed lookup vs. genuine empty result, actually distinguished.** `fetchJsonSafe()` now returns `{status:'ok'|'rate_limited'|'error', data}` instead of collapsing everything to `null`. `findProductPhoto()` tracks whether any source genuinely answered: a real empty result is still HTTP 200/`matchType:'none'` (legitimately cacheable); an outage is HTTP 502/`'unavailable'`; a 429 is HTTP 429/`'rate_limited'` — both non-2xx, so the client's existing `!res.ok` guard already refuses to cache them (no client caching-logic change needed, just the server telling the truth). The photo batch flow now stops on the first real error instead of continuing to hammer a struggling endpoint through the rest of the queue.
+3. **Bounded, validated photo download; consistent state either way.** `applyFoundPhotoToItem()` now distinguishes a **hard rejection** (received-but-invalid response: wrong content-type, oversized by declared or actual byte count, or redirected off the image-host allowlist checked against the *final* URL) — nothing about the item changes at all, old photo/photoUrl/photoSource untouched — from a **confirmed online-only selection** (fetch couldn't even complete — CORS/network/timeout via `AbortSignal.timeout`) — old local photo cleared so `photoSrc()` shows the new remote photo instead of a stale one, metadata and display now always agree. Added a clickable source-page link (`c.sourceUrl`) next to each candidate.
+
+### Tests actually run
+
+- `npm test` — **33/33 passing** across three suites:
+  - `tests/dedupe.test.mjs` (9/9, unchanged).
+  - `tests/shopping-match.test.mjs` (new, 11/11) — extracts and runs the actual `catalogMatches`/`shoppingMatches`/`addShoppingItemRef`/`commitShopAdd` against Codex's exact repro plus the full acceptance-evidence list: already-listed partial match, exact listed match, mixed listed/unlisted ambiguous variants, single unlisted match, zero-match manual fallback.
+  - `tests/photo-lookup.test.mjs` (new, 13/13) — calls the actual exported `handleAiHub()` with a mocked `global.fetch`: all-503, all-429, network error, malformed JSON, genuine empty result, and one-source-down-one-healthy (confirms a healthy source's candidate survives another source's failure).
+- Playwright (Chromium, mobile viewport), with one methodology note worth recording: the first attempt at verifying the photo-download fix showed *every* case — including a genuinely valid image — as rejected. Traced it to `sw.js` intercepting the cross-origin fetch and serving its own cached `index.html` as a fallback (its existing network-first-with-cache-fallback behavior, unchanged and correct on its own terms) inside the test page. Fixed by disabling service workers in the Playwright browser context — a test-harness correction, not a change to `sw.js` or the app. With that fixed:
+  - **Valid image** (real bytes, correct MIME): compresses, saves offline, persists after a full page reload, source link present in the candidate sheet.
+  - **Wrong MIME type**: rejected outright; photo/photoUrl/photoSource provably unchanged from baseline afterward.
+  - **Oversized** (`content-length` claiming 50MB): rejected outright, same unchanged-baseline check.
+  - **Unreachable/CORS-blocked**: correctly took the confirmed-online-only path (distinct toast from the rejection case) — old local photo cleared, new `photoUrl` set.
+- Re-ran the full HOME-006 regression suite (colors, empty-state, dedupe persistence, photo flows, focus stability) against this commit — no regressions from the R1 changes.
+
+### Known limitations (unchanged from HOME-006, still true)
+
+Live network path to Open Food Facts/Open Beauty Facts from a real deployment is still not verified (this sandbox's egress to `world.openfoodfacts.org` remains policy-blocked, confirmed not assumed) — recommend a real smoke test against the preview URL before calling this fully closed. `VARIANT_TAGS`'s scope boundary (Hebrew flavour/scent words only, not exhaustive) is unchanged from HOME-006.
+
+### Decision needed
+
+None blocking on my end — ready for Codex's re-review at commit `6adcaa0`. Roy's conditional merge approval (recorded above) still requires Codex's actual approval before any merge happens; that condition still isn't met.
+
+Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006-R1" section) and `docs/AI_HANDOFF.md` on the implementation branch, per protocol.
+
+---
