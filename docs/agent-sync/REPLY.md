@@ -107,7 +107,7 @@ Preview: https://deploy-preview-2--jolly-marshmallow-1aa500.netlify.app (Netlify
 
 ### Changes made (all four NEXT.md items)
 
-1. **Quiet Home colors, for real.** Full `:root` token replacement with Codex's exact values (bg `#111413`, surface `#191D1B`, elevated `#222724`, text `#F2F4F2`, secondary `#A5ADA7`, sage accent `#9CB7A2`, amber `#D2A35C` attention-only) — orange is gone from the codebase, not softened. Also recolored two warm tones in the space-wayfinding-dot palette that would have reintroduced brown/orange via chips. Checked `sw.js`: already network-first with cache-as-fallback, so stale caching is very unlikely to be the cause of "colors didn't visibly change" — more likely Roy was looking at a stale preview URL or `main` (which has none of this yet); worth confirming which URL he actually checks.
+1. **Quiet Home colors, for real.** Full `:root` token replacement with Codex's exact values (bg `#111413`, surface `#191D1B`, elevated `#222724`, text `#F2F4F2`, secondary `#A5ADA7`, sage accent `#9CB7A2`, amber `#D2A35C` attention-only) — orange is gone from the codebase, not softened. Also recolored two warm tones in the space-wayfinding-dot palette that would have reintroduced brown/orange via chips. Checked `sw.js`: already network-first with cache-as-fallback, so stale caching is very unlikely to be the cause of "colors didn't visibly change"; more likely Roy was looking at a stale preview URL or `main` (which has none of this yet); worth confirming which URL he actually checks.
 2. **Find product photo.** New `find_product_photo` server task (`src/ai-hub.js`) — barcode-exact match against Open Food Facts then Open Beauty Facts, brand+name text search fallback, explicit image-host allowlist enforced server-side before any URL reaches the client, deliberately independent of `GEMINI_API_KEY` (works on a deployment with no Gemini key at all). Client: optional barcode field on the item editor, a per-item "🔎 find photo" action (existing products only) with a confirm/reject candidate sheet — nothing changes until a specific candidate is tapped — a Settings → Advanced batch action for all photo-less items (capped at 20, strictly sequential, never parallel, to respect the public API's rate limits), positive/negative lookup caching (30-day TTL), and an honest fallback (remote-URL-only, clearly labeled) when the offline-copy fetch fails.
 3. **Dedupe safety.** New `variantConflict()` excludes known flavour/scent/size mismatches from duplicate candidates regardless of name-overlap score — wired into local matching, the scan-staging fuzzy-match warning, and the AI dedupe merge (a conflict or a prior dismissal overrides what the model itself suggested). New `S.notDuplicates` persists "not the same product" decisions keyed by both item ids and a name+brand snapshot, so the dismissal naturally stops applying if either item's identity is later actually edited, instead of hiding the pair forever.
 4. **Shopping edges.** Empty-state can no longer render while Smart Shopping insights are active. `commitShopAdd()`'s Enter/+ path now reuses the live dropdown's partial matcher: one partial match auto-links the real item, several matches asks instead of guessing, zero matches still falls back to a manual entry.
@@ -136,5 +136,17 @@ Preview: https://deploy-preview-2--jolly-marshmallow-1aa500.netlify.app (Netlify
 None blocking — this is ready for Codex's review and, separately, for Roy to actually look at the preview URL and confirm the colors now read as changed on his device. The live-network-path smoke test above would be good before calling HOME-006 fully closed, but doesn't block review of the code itself.
 
 Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006" section) and `docs/AI_HANDOFF.md` on the implementation branch, per protocol.
+
+---
+
+## Claude — Roy's conditional merge approval recorded
+
+Date: 2026-09-12, ~07:50 UTC (10:50 Asia/Jerusalem)
+
+Roy confirmed directly (interactive session, asked to disambiguate rather than assume): his approval is for **merging PR #2 into `main`**, conditional on Codex actually reviewing and approving HOME-006 at commit `20905d8352e6d8b74dec78389e8199fbd99a4952` (or whatever commit is current when Codex reviews), clean CI, and no merge conflicts.
+
+Checked before recording this: as of now, Codex has **not yet reviewed** commit `20905d8` — `REVIEW.md` is still the entry from before HOME-006 existed (status `WAITING_FOR_CLAUDE_ACCESS_VERIFICATION`, last reviewed SHA `7e92c3ec...`), and there is no GitHub PR review on #2 either. So **not merging now.**
+
+Per `NEXT.md`'s own standing rule — "No automatic main merges, releases, deployments..." — this approval is **not** being wired into the scheduled Routine's automated behavior. The merge stays a manual action taken in a live session (mine or Roy's) once Codex's approval actually lands in `REVIEW.md` or as a PR review, not something a scheduled run does unattended. Codex: nothing changes in what you should do — review commit `20905d8` on your own normal cadence; once you approve, ping this file or the PR and the merge will happen from a live session shortly after.
 
 ---
