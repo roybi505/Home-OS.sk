@@ -1,5 +1,5 @@
 # Home OS agent coordination
-Task ID: HOME-006
+Task ID: HOME-006-R1
 Status: READY_FOR_CLAUDE
 Baseline reviewed: 7e92c3ecc1a31c68272801bd6144386504bafcaa (PR #2)
 Owner: Claude (implementation); Codex (review)
@@ -17,7 +17,27 @@ Proposed cadence: Codex checks every 6h for 3 days; Claude may be separately sch
 If the task ID was already handled and no new feedback exists, exit. Only changed implementation SHAs merit a new review. Maximum one bounded implementation pass per invocation.
 Acceptance by Roy, not an arbitrary timer, defines product satisfaction.
 
-## User priority update
+## Active revision — HOME-006-R1
+Status: READY_FOR_CLAUDE
+Reviewed implementation: 20905d8352e6d8b74dec78389e8199fbd99a4952
+This revision supersedes the original implementation checklist below as the next bounded pass. Do not rebuild completed features or begin the deferred backlog. Claim HOME-006-R1 in REPLY.md before editing.
+
+Target files: public/index.html and src/ai-hub.js. Keep PR #2's feature branch; preserve working search and the new sage theme.
+
+1. Fix Shopping catalog matching independently of shopping-list membership. shoppingMatches currently removes already-listed items before commitShopAdd decides whether to create a manual extra. Reproduced: catalog "קפה נמס וניל" already in shortages + query "קפה" => new manual extra. Match the complete catalog first, then show already-listed state. One match already listed must be a no-op with feedback; multiple matching variants must require selection even when only one is not listed; create manual text only for zero catalog matches.
+2. Distinguish upstream photo lookup failure from a successful empty result. fetchJsonSafe converts HTTP errors/timeouts/malformed JSON to null; findProductPhoto returns HTTP 200 with []; the client caches that as a negative result for 30 days. Return explicit unavailable/partial-result status. Never negative-cache failures (including when all sources fail); allow retry and preserve useful results from healthy sources. Handle 429 with bounded retry/backoff or stop-and-retry feedback, without repeated requests.
+3. Bound the image download in applyFoundPhotoToItem: timeout, raster MIME validation, response-byte limit before decoding, and trusted HTTPS URL/redirect handling. Reject unsafe/oversized responses gracefully; no arbitrary URL proxy. Preserve the previous photo on failed replacement so the UI cannot claim a different image was applied while photoSrc still displays the old one. For a product with no photo, clearly distinguish confirmed online-only selection from saved offline bytes. Expose the source-page link and applicable attribution/license in the candidate flow and retain metadata with the selection.
+
+Acceptance evidence:
+- Regression fixtures: already-listed partial match, mixed listed/unlisted ambiguous variants, exact listed match, zero-match manual entry.
+- Mocked upstream 503/429/timeout/malformed response must not create a 30-day negative cache; successful empty lookup may cache; healthy-source candidates survive other-source failure.
+- Valid image saves/compresses and displays after offline reload; stalled, oversized, non-image, disallowed redirect, and failed replacement settle with honest feedback and intact existing photo.
+- Single and batch approval remain explicit; no image changes before acceptance.
+- Run focused tests and report exact SHA, results, and any unperformed live-provider/mobile tests. Recheck PR checks for that SHA; no claim of live/offline success based only on stubs.
+
+Codex status: CHANGES_REQUESTED, not merge approval. REPLY.md reports Roy's conditional merge authorization; the review condition is not met. No merge or deployment in this coordination pass.
+
+## Original scope / user priority update
 Roy reports search works on his device. Keep it working and regression-test continuous typing, caret and composition. Do not delay this iteration solely for an input-render refactor. Previous review remains a technical risk, not proof of an observed device failure.
 Roy says colors did not visibly change; wants AI-assisted internet product photos and reliable daily household use.
 
