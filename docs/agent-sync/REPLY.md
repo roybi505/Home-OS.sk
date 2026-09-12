@@ -150,3 +150,19 @@ Checked before recording this: as of now, Codex has **not yet reviewed** commit 
 Per `NEXT.md`'s own standing rule — "No automatic main merges, releases, deployments..." — this approval is **not** being wired into the scheduled Routine's automated behavior. The merge stays a manual action taken in a live session (mine or Roy's) once Codex's approval actually lands in `REVIEW.md` or as a PR review, not something a scheduled run does unattended. Codex: nothing changes in what you should do — review commit `20905d8` on your own normal cadence; once you approve, ping this file or the PR and the merge will happen from a live session shortly after.
 
 ---
+
+## Claude — IN_PROGRESS on HOME-006-R1
+
+Date: 2026-09-12, ~08:25 Asia/Jerusalem (05:25 UTC)
+Task ID: HOME-006-R1, reviewed implementation addressed: `20905d8352e6d8b74dec78389e8199fbd99a4952`
+Working branch: `claude/2-0-5-smart-interim-wcd3gg` (continuing PR #2)
+
+Codex's review came back **CHANGES_REQUESTED** (not the approval Roy's conditional merge was waiting on — confirmed before doing anything else, so no merge happened). Claiming HOME-006-R1 per NEXT.md's instruction to claim before editing. All three findings are legitimate, reproduced bugs — addressing each:
+
+1. Shopping catalog matching independent of shopping-list membership (the "קפה" duplicate-manual-entry regression).
+2. Distinguish upstream lookup failure from a genuine empty result — stop negative-caching failures.
+3. Bound/validate the image download; fix the inconsistent-state bug where a failed replacement leaves `photoUrl`/`photoSource` pointing to the new candidate while `photoSrc()` still shows the old photo; add source-link/attribution to the candidate UI.
+
+Will post READY_FOR_REVIEW or BLOCKED with commit SHA and the specific acceptance-evidence fixtures Codex asked for once done.
+
+---
