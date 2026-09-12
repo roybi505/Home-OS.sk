@@ -1,7 +1,7 @@
 # Home OS agent coordination
-Task ID: HOME-006-R2
+Task ID: HOME-007
 Status: READY_FOR_CLAUDE
-Baseline reviewed: 6adcaa0789dbe173c246726896d8ba43b0475b8e (PR #2)
+Baseline reviewed: 316e702b7fa806577bfd0417d5bd7771b0507974 (PR #2)
 Owner: Claude (implementation); Codex (review)
 This dedicated communication folder is PUBLIC, not a private channel. No secrets or personal household data.
 
@@ -17,29 +17,18 @@ Proposed cadence: Codex checks every 6h for 3 days; Claude may be separately sch
 If the task ID was already handled and no new feedback exists, exit. Only changed implementation SHAs merit a new review. Maximum one bounded implementation pass per invocation.
 Acceptance by Roy, not an arbitrary timer, defines product satisfaction.
 
-## Active revision — HOME-006-R2
+## Current handoff — HOME-007
 Status: READY_FOR_CLAUDE
-Reviewed implementation: 6adcaa0789dbe173c246726896d8ba43b0475b8e
-Single bounded follow-up to R1; Shopping's reproduced duplicate is fixed. Preserve that fix, working search, and sage theme. Do not rebuild completed features or start the backlog.
+Baseline: 316e702b7fa806577bfd0417d5bd7771b0507974
+R2 was delivered and its three central bug reproductions now pass Codex's focused checks. Proceed with Roy's already-authorized frontend brief below; do not ask for another general design approval or rebuild R2.
 
-Target files: public/index.html, src/ai-hub.js, public/sw.js; focused regression tests under tests/ and existing implementation handoff docs.
+One small remaining R2 acceptance fix belongs in this same bounded pass before release: in src/ai-hub.js validate parsed response SHAPES, not just JSON syntax. Reproduced: one search source returns HTTP 200 {"unexpected":true}, the other {"products":[]} => cacheable matchType:none. Missing/non-array products must count as a failure; barcode responses must have a supported status and appropriate product shape. Preserve real empty results and healthy-source candidates. Add fixtures to tests/photo-lookup.test.mjs for syntactically valid malformed shapes; the current malformed test covers HTML/JSON parse failure only.
 
-1. Preserve an existing photo and all its metadata when replacement download fails (network/CORS/timeout/HTTP error/decode failure). R1 clears item.photo and reports applied:true on network failure, contrary to R1 acceptance. For photo-less items retain an honest, explicit online-only choice; replacing an existing local copy with online-only must be a separate informed confirmation, not an implicit fallback.
-2. Track partial lookup failures. Reproduced: Food source HTTP 503 + Beauty successful empty => HTTP 200 matchType:none, still cached negatively for 30 days. Empty results are definitive only when all relevant attempted sources/paths succeeded with valid response shapes. Partial failures with zero candidates must remain retryable and not negative-cacheable; keep healthy-source candidates. Test mixed empty+503, empty+429, barcode-empty+search-failure and malformed response shape, in addition to all-source failure.
-3. public/sw.js currently serves cached index.html on ANY failed GET, including product image fetches. Reproduced with its actual fetch handler. Restrict HTML fallback to app navigation; do not substitute HTML for images/API responses or broadly cache third-party photo traffic. Keep app-shell offline load. Validate with service workers ENABLED: valid image, failed image, existing-photo replacement preservation, saved image after offline reload. Disabling service workers may isolate unit tests but cannot establish production-path success.
-4. Finish existing download safeguards: actual streamed-byte limit before full buffering (res.blob() then size check does not bound download memory); explicit supported raster MIME allowlist instead of image/*; validate initial URL and reject disallowed redirects before following (rejecting all redirects is acceptable). Preserve image metadata on rejection. Keep source link and add applicable provider image license/attribution metadata; no paid service or open proxy.
+Do not claim full PR/release approval: live-provider and integrated browser validation remain outstanding. Keep changes in the feature branch, with exact SHA/preview and visual evidence. No automatic merge/deploy or new permissions. One active task only; claim HOME-007 in REPLY.md, finish the brief, report results, and stop for review.
 
-Acceptance: focused regression tests for these cases, existing Shopping/dedupe tests stay green, and report exact head SHA, checks and limitations. Do not label mocked provider calls as live integration verification.
-
-### Execution permission note — HOME-006-R2
-This is implementation work already requested within HOME-006, not a request for another planning approval. Within your existing repository/tool grants, proceed without asking Roy again for each routine step: edit the target code and directly related tests, make necessary scoped implementation choices, run local tests, commit/push to the existing PR feature branch, update implementation handoff docs and your REPLY.md. Claim this task IN_PROGRESS before editing, then report READY_FOR_REVIEW or a concrete BLOCKED reason.
-Do not modify Codex-owned NEXT.md/REVIEW.md, clear household storage, change credentials/permissions, buy services, force-push, expand features or deploy/merge automatically. This note does not override platform permission prompts or confer missing tool access.
-Stop for a genuinely new authorization need, not routine coding choices. The reported conditional merge approval is still dependent on actual review approval and clean checks; this review is CHANGES_REQUESTED. No merge authorization is issued here.
-Once finished, stop for review; do not repeatedly rebuild the same revision. Roy's frontend feedback has arrived; follow the queued HOME-007 brief below after handing off the active R2 task.
-
-## Roy's frontend feedback — 2026-09-12 / queued HOME-007
-Status: QUEUED_AFTER_HOME-006-R2
-Roy explicitly requests a visible frontend upgrade. Design feedback is now received; the earlier note to await his design feedback is superseded. Preserve R2 as the active task; finish and hand it off before claiming HOME-007, and check the latest NEXT/REVIEW first. Do not run competing edits.
+## Active frontend brief — HOME-007
+Status: READY_FOR_CLAUDE
+Roy explicitly requests a visible frontend upgrade. Design feedback is now received; the earlier note to await his design feedback is superseded. R2 has been handed off; HOME-007 is now the single active task. Check the latest NEXT/REVIEW first and do not run competing edits.
 
 Evidence: Roy's current screenshots still show orange navigation/send/home accents, large rounded inventory cards, truncated mixed-language product names, repeated generic icons, tall persistent bottom bars, and a Home screen dominated by a large stock percentage and navigation tiles. These are visual observations, not evidence of which URL/build he opened. Do not copy household inventory, screenshots, or personal counts into this public repo.
 
