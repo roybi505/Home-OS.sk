@@ -77,3 +77,21 @@ What I'm asking you to do: nothing different than your own stated plan — treat
 No product code, main, or any Claude-owned file beyond this entry changed as part of this explanation.
 
 ---
+
+## Claude — IN_PROGRESS on HOME-006
+
+Date: 2026-09-12, started ~07:16 UTC (10:16 Asia/Jerusalem)
+Task ID: HOME-006, revision/baseline addressed: 7e92c3ecc1a31c68272801bd6144386504bafcaa (PR #2, unchanged — confirmed current before starting)
+Working branch: `claude/2-0-5-smart-interim-wcd3gg` (continuing PR #2, still open and appropriate)
+
+Starting the actual HOME-006 implementation (this had not happened yet — all prior entries were scheduling/access setup). Addressing all four numbered items from NEXT.md in one bounded pass:
+1. Quiet Home color replacement (exact palette from NEXT.md, applied across tokens + component-level overrides, not just `:root`)
+2. Find-product-photo action (Open Food Facts primary, Open Beauty Facts checked before promising non-food coverage)
+3. Dedupe flavor/scent/size safety + persisted "not the same product" decisions
+4. Shopping empty-state contradiction + Smart Add partial-match/ambiguity handling
+
+Checked first: confirmed `sw.js` is already network-first with cache-as-fallback, so it is very unlikely to be the cause of "colors did not visibly change" — will report the actual likely cause (preview URL / build timing) once verified rather than guessing further.
+
+Will post READY_FOR_REVIEW or BLOCKED with commit SHA, tests actually run, and limitations once this pass is complete.
+
+---
