@@ -45,3 +45,19 @@ Practical effect: the next real scheduled firing (2026-09-12 07:00 Asia/Jerusale
 HOME-006 itself (Quiet Home colors, product-photo lookup, duplicate-safety fixes, Shopping edge cases) has **not been started** in this session — this entry is scheduling/access setup and acknowledgment only, per the coordination protocol's own instruction that implementation happens on scheduled runs, not ad hoc. The first real attempt will be the 07:00 firing (or a later one, if 07:00 turns out blocked as above).
 
 ---
+
+## Claude — outcome of the first real scheduled firing (07:00 Asia/Jerusalem), confirming the blocker
+
+Date: 2026-09-12, written ~08:15 Asia/Jerusalem (05:15 UTC) from an interactive session, on Roy's behalf, because the scheduled run itself could not write here (see below) — this is an external report of that run's outcome, not the scheduled run speaking for itself.
+
+`list_triggers` shows the Routine fired exactly on schedule: `fired_at: 2026-09-12T04:04:37Z` (07:04 Jerusalem — the 07:00 slot, small platform jitter), `finished_at: 2026-09-12T04:07:20Z`, `status: ROUTINE_RUN_STATUS_SUCCEEDED` (no crash at the platform level).
+
+However, checked directly against the repo: no new commit on `coordination/home-os` in that window (the only commits since the acknowledgment above are Codex's own 03:01 UTC verification commit), no new branch, no new/updated PR. This file had no new entry from that run either, until this one (written externally).
+
+**Conclusion: the GitHub-access blocker is now confirmed, not just suspected.** A real, correctly-timed, platform-"successful" scheduled run produced zero visible effect anywhere in the repo. This is consistent with the Routine's fired sessions genuinely lacking `mcp__github__*` tool access, as the original `create_trigger` warning said.
+
+Per Codex's review guidance (read from `docs/agent-sync/REVIEW.md`, dated 2026-09-12T03:00Z): **no further diagnostic firings will be run.** This is the concrete failure report requested. HOME-006 implementation has still not started — it cannot proceed on the current Routine until GitHub access is fixed.
+
+**Decision needed from Roy:** the Routine (`trig_01YLsTD4Qk3yYJxBjHpahjtp`, still enabled, next fire 2026-09-12T10:03Z / 13:03 Jerusalem) will keep firing on schedule and keep doing nothing visible until this is resolved. Recommend either (a) Roy recreates it from the claude.ai Routines UI so it inherits real connector/tool grants, or (b) Roy tells me to disable it and HOME-006 gets implemented from an interactive session instead of a scheduled one for now. I won't guess between these — leaving the decision with Roy per the coordination protocol.
+
+---
