@@ -35,7 +35,27 @@ Acceptance: focused regression tests for these cases, existing Shopping/dedupe t
 This is implementation work already requested within HOME-006, not a request for another planning approval. Within your existing repository/tool grants, proceed without asking Roy again for each routine step: edit the target code and directly related tests, make necessary scoped implementation choices, run local tests, commit/push to the existing PR feature branch, update implementation handoff docs and your REPLY.md. Claim this task IN_PROGRESS before editing, then report READY_FOR_REVIEW or a concrete BLOCKED reason.
 Do not modify Codex-owned NEXT.md/REVIEW.md, clear household storage, change credentials/permissions, buy services, force-push, expand features or deploy/merge automatically. This note does not override platform permission prompts or confer missing tool access.
 Stop for a genuinely new authorization need, not routine coding choices. The reported conditional merge approval is still dependent on actual review approval and clean checks; this review is CHANGES_REQUESTED. No merge authorization is issued here.
-Once finished, stop for review; do not repeatedly rebuild the same revision. Roy is evaluating the design separately; don't start a redesign without his feedback.
+Once finished, stop for review; do not repeatedly rebuild the same revision. Roy's frontend feedback has arrived; follow the queued HOME-007 brief below after handing off the active R2 task.
+
+## Roy's frontend feedback — 2026-09-12 / queued HOME-007
+Status: QUEUED_AFTER_HOME-006-R2
+Roy explicitly requests a visible frontend upgrade. Design feedback is now received; the earlier note to await his design feedback is superseded. Preserve R2 as the active task; finish and hand it off before claiming HOME-007, and check the latest NEXT/REVIEW first. Do not run competing edits.
+
+Evidence: Roy's current screenshots still show orange navigation/send/home accents, large rounded inventory cards, truncated mixed-language product names, repeated generic icons, tall persistent bottom bars, and a Home screen dominated by a large stock percentage and navigation tiles. These are visual observations, not evidence of which URL/build he opened. Do not copy household inventory, screenshots, or personal counts into this public repo.
+
+Target: public/index.html (CSS tokens/components; Home, Supplies, Kitchen renderers; persistent Ask bar/navigation; Settings build information). Existing service-worker fixes remain R2's responsibility.
+
+Deliver a visibly refined Quiet Home frontend, not a token-only recolor:
+- Home: replace oversized percentage hero and repeated large navigation tiles with a compact household summary, clear useful actions (add product, record purchase/use, open shopping), and actual shortages/insights when present. Label stock summaries as relative to configured targets; do not imply complete household coverage. With no insights, use a calm compact empty state, no fabricated activity or predictions.
+- Supplies/Kitchen: product identity first, readable name up to two lines with bidi isolation, secondary brand/location and quantity. Show approved real product photos when available with a consistent modest thumbnail; a neutral icon fallback otherwise. Reduce card height, shadows and nested surfaces; make quantity controls visually secondary while keeping comfortable touch targets. Preserve quick actions and all inventory behavior.
+- Persistent controls: slim the combined Ask/navigation footprint, reserve enough scroll padding that the last row remains accessible, respect safe-area and keyboard resize. Fix the mixed-language placeholder ordering. Keep the existing four tabs and persistent Ask access.
+- Sage accents for navigation and primary action; amber only for attention. Verify header badge, send action, selected chips and sheets, not only :root. Maintain readable contrast, including secondary text.
+- No framework/build-system migration, no new analytics backend, no fake images, no data reset, no unrelated feature work.
+
+Delivery/version evidence is mandatory: identify the exact preview URL and implementation SHA, and provide before/after mobile renders of Home, Supplies, Kitchen and Shopping using synthetic fixtures (long Hebrew/English names, with/without photos, with/without shortages). Include a small Settings version identifier tied to the actual build/release so Roy can distinguish an older installed/production version from preview; do not claim the build is live on production merely because preview succeeds. Never tell Roy to clear storage.
+Acceptance: observable changes to layout/typography/product cards beyond color; continuous search typing/caret preserved; last item reachable above bottom controls; normal inventory/shopping actions and offline load preserved. Review mobile widths around 360–430 CSS px and larger text. Report honestly what was not tested.
+
+Execution permissions: this requested frontend scope, related checks, commits/push to the feature branch and PR/handoff updates are authorized within existing tool grants. No additional approval needed for routine CSS/layout choices in this brief. No automatic main merge/deployment, paid service, credentials change or scope expansion. Do not wait for another general design approval to implement this brief after the active task is handed off. Roy still decides whether the delivered result is satisfactory.
 
 ## Original scope / user priority update
 Roy reports search works on his device. Keep it working and regression-test continuous typing, caret and composition. Do not delay this iteration solely for an input-render refactor. Previous review remains a technical risk, not proof of an observed device failure.
