@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Home OS</title>
-<meta name="theme-color" content="#1B1815">
+<meta name="theme-color" content="#111413">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Home OS">
@@ -17,18 +17,21 @@
      background / surface / elevated-surface / text-primary / text-secondary /
      accent / success / warning / danger — the reusable palette.
      --surface-2 doubles as "elevated surface" (stepper buttons, inputs-on-input). */
-  --bg:#1B1815;
-  --surface:#242019;      --card:#242019;      /* alias kept: many call sites still say --card */
-  --surface-2:#2E2A22;    --soft:#2E2A22;      /* alias kept: --soft == elevated surface */
-  --line:#3A342A; --line2:#2E2A22;
-  --text:#F3EDE3;   --ink:#F3EDE3;             /* text-primary  (alias: --ink) */
-  --text-2:#B8AC9A; --ink2:#B8AC9A;            /* text-secondary */
-  --text-3:#8A7F6E; --ink3:#8A7F6E;
-  --accent:#D9922E; --accent-ink:#241708; --accent-soft:#3A2E18;
-  --warning:#E8B34A; --warn:#E8B34A; --warn-soft:#3D3018;
-  --danger:#E2685B;  --danger-soft:#3D211C;
-  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#20332A;
-  --fab-bg:#2E2A22;
+  /* Quiet Home v2 — exact palette from HOME-006: bg/surface/elevated/text/
+     secondary/sage-accent/amber-attention. Orange is gone entirely, not
+     just softened — see docs/DECISIONS.md. */
+  --bg:#111413;
+  --surface:#191D1B;      --card:#191D1B;      /* alias kept: many call sites still say --card */
+  --surface-2:#222724;    --soft:#222724;      /* alias kept: --soft == elevated surface */
+  --line:#2A302C; --line2:#222724;
+  --text:#F2F4F2;   --ink:#F2F4F2;             /* text-primary  (alias: --ink) */
+  --text-2:#A5ADA7; --ink2:#A5ADA7;            /* text-secondary */
+  --text-3:#6E7772; --ink3:#6E7772;
+  --accent:#9CB7A2; --accent-ink:#13231A; --accent-soft:#1E2A22;
+  --warning:#D2A35C; --warn:#D2A35C; --warn-soft:#2E2718;
+  --danger:#E2685B;  --danger-soft:#2C201E;
+  --success:#6FB88F; --ok:#6FB88F; --ok-soft:#1B2A22;
+  --fab-bg:#222724;
 
   /* spacing scale */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
@@ -57,8 +60,9 @@ select{appearance:none;background:var(--surface)}
 .hidden{display:none !important}
 .row{display:flex;align-items:center;gap:var(--sp-2)}
 .grow{flex:1;min-width:0}
-.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;unicode-bidi:plaintext}
 .muted{color:var(--text-3);font-size:12px}
+.bidi{unicode-bidi:plaintext}
 .icon{display:inline-flex;flex-shrink:0}
 .icon svg{display:block}
 .scroll-x{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
@@ -72,7 +76,7 @@ header{background:var(--surface);border-bottom:1px solid var(--line);
   width:36px;height:36px;border-radius:var(--rad-sm);display:flex;align-items:center;
   justify-content:center;background:var(--surface-2);flex-shrink:0;color:var(--text-2)
 }
-.iconbtn.on{background:var(--accent);color:var(--accent-ink)}
+.iconbtn.on{background:var(--accent-soft);color:var(--accent)}
 .home-badge{width:34px;height:34px;border-radius:var(--rad-sm);background:var(--accent);
   color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 
@@ -112,9 +116,9 @@ main{flex:1;overflow-y:auto;padding:var(--sp-4);padding-bottom:172px;-webkit-ove
 
 /* ---- big product/family cards (Supplies & Kitchen) ---- */
 .plist{display:flex;flex-direction:column;gap:var(--sp-2)}
-.pcard{background:var(--surface);border-radius:var(--rad-lg);box-shadow:var(--shadow);
+.pcard{background:var(--surface);border-radius:var(--rad-lg);border:1px solid var(--line2);
   padding:var(--sp-3) var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);position:relative}
-.pcard.out{background:#241713}
+.pcard.out{border-color:var(--danger-soft)}
 .pcard .swatch{width:44px;height:44px;border-radius:var(--rad-sm);display:flex;align-items:center;
   justify-content:center;flex-shrink:0;background:var(--surface-2);color:var(--text-2)}
 .pcard .info{flex:1;min-width:0}
@@ -127,11 +131,11 @@ main{flex:1;overflow-y:auto;padding:var(--sp-4);padding-bottom:172px;-webkit-ove
 .status-tag.ok{background:var(--ok-soft);color:var(--success)}
 .fam-badge{font-size:10.5px;color:var(--text-3);font-weight:600}
 
-.stepper{display:flex;align-items:center;background:var(--surface-2);border-radius:var(--rad-sm);padding:2px}
-.stepper button{width:28px;height:28px;border-radius:8px;background:var(--surface);
-  box-shadow:var(--shadow);font-size:15px;font-weight:600;color:var(--text-2)}
-.stepper button:active{transform:scale(.92)}
-.stepper .n{width:32px;text-align:center;font-weight:700;font-size:13px}
+.stepper{display:flex;align-items:center;gap:3px}
+.stepper button{width:26px;height:26px;border-radius:8px;background:transparent;
+  border:1px solid var(--line);font-size:14px;font-weight:600;color:var(--text-2)}
+.stepper button:active{transform:scale(.92);background:var(--surface-2)}
+.stepper .n{width:30px;text-align:center;font-weight:700;font-size:13px}
 .stepper .n.z{color:var(--danger)}
 
 /* zone tabs (Kitchen) */
@@ -275,7 +279,7 @@ details.adv[open] > summary::before{content:'▾ '}
 <div class="bottombar">
   <div class="askbar">
     <button class="iconbtn" id="askCam" title="סרוק ארון" style="background:none"></button>
-    <input id="askInput" type="text" placeholder="ספר ל-Home OS מה קרה…">
+    <input id="askInput" type="text" dir="auto" placeholder="ספר ל-Home OS מה קרה…">
     <button class="send" id="askSend" title="שלח"></button>
   </div>
   <div class="tabbar">
@@ -365,16 +369,31 @@ const CAT_ICON = {
 function catIcon(catId){ return CAT_ICON[catId] || 'box'; }
 
 let S = {
-  items:[], spaces:[], cats:[], extras:[], events:[],
+  items:[], spaces:[], cats:[], extras:[], events:[], dismissedInsights:{},
+  photoLookupCache:{}, notDuplicates:{},
   meta:{ updatedAt:0, schemaVersion:0 }
 };
-const UI = { tab:'home', space:'all', cat:'all', view:'grid', q:'', zone:'all' };
+const UI = { tab:'home', space:'all', cat:'all', view:'grid', q:'', zone:'all', shopQ:'' };
 
 /* ---------- helpers ---------- */
 const $  = id => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* CSS text-overflow:ellipsis on a single line of mixed Hebrew/English text
+   is where the truncation actually reorders badly — the browser inserts
+   the ellipsis into the visual layout after bidi reordering has already
+   split a Latin word across the cut, which is exactly the "truncate and
+   reorder poorly" symptom. Truncating the STRING itself, in logical order,
+   before it ever reaches the DOM sidesteps that: the bidi algorithm then
+   only ever has to lay out an already-short, already-correct string. */
+function bidiTrunc(s, max){
+  s = String(s == null ? '' : s);
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max).replace(/\s+\S*$/, '');
+  return (cut || s.slice(0, max)) + '…';
+}
 
 let toastT;
 function toast(msg){
@@ -396,6 +415,12 @@ function migrateState(state){
   state.cats    = Array.isArray(state.cats)    ? state.cats    : [];
   state.extras  = Array.isArray(state.extras)  ? state.extras  : [];
   state.events  = Array.isArray(state.events)  ? state.events  : [];
+  state.dismissedInsights = (state.dismissedInsights && typeof state.dismissedInsights === 'object')
+    ? state.dismissedInsights : {};
+  state.photoLookupCache = (state.photoLookupCache && typeof state.photoLookupCache === 'object')
+    ? state.photoLookupCache : {};
+  state.notDuplicates = (state.notDuplicates && typeof state.notDuplicates === 'object')
+    ? state.notDuplicates : {};
   state.meta    = state.meta || {};
   if (!state.meta.schemaVersion) state.meta.schemaVersion = 0;
 
@@ -410,6 +435,8 @@ function migrateState(state){
       if (it.familyId === undefined)    it.familyId = null;
       if (it.familyName === undefined)  it.familyName = '';
       if (it.variantName === undefined) it.variantName = '';
+      if (it.barcode === undefined)     it.barcode = '';
+      if (it.photoSource === undefined) it.photoSource = null;
       return it;
     });
     state.meta.schemaVersion = SCHEMA_VERSION;
@@ -431,7 +458,7 @@ function load(){
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(LS_DATA) || 'null'); } catch(e){}
   if (raw && Array.isArray(raw.items)) {
-    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],meta:{updatedAt:0,schemaVersion:0}}, raw);
+    S = Object.assign({items:[],spaces:[],cats:[],extras:[],events:[],dismissedInsights:{},photoLookupCache:{},notDuplicates:{},meta:{updatedAt:0,schemaVersion:0}}, raw);
   }
   S = migrateState(S);
   if (!S.spaces.length) S.spaces = DEFAULT_SPACES.map(x=>({...x}));
@@ -461,6 +488,55 @@ function shortages(pool){
     .sort((a,b)=> (a.item.qty - b.item.qty) || b.need - a.need);
 }
 function getShoppingNeeds(){ return shortages(); }
+
+/* ---------- deterministic event intelligence ----------
+   No AI involved: reads only S.items/S.events, both already-real recorded
+   facts. Every insight's "evidence" string states nothing beyond what was
+   actually counted, so it can never be a guess or an invented number.
+   Conservative on purpose: needs a real, recent pattern (several USED
+   events in the window) AND genuinely thin remaining stock, and skips
+   anything the deterministic shortages() list already flags or that the
+   user already added to the shopping list or dismissed recently. */
+const INSIGHT_WINDOW_MS = 14 * 24 * 3600 * 1000;
+const INSIGHT_MIN_USES = 3;
+const INSIGHT_MAX_QTY = 2;
+const INSIGHT_COOLDOWN_MS = 3 * 24 * 3600 * 1000;
+
+function computeInsights(){
+  const now = Date.now();
+  const cutoff = now - INSIGHT_WINDOW_MS;
+  const dismissed = S.dismissedInsights || {};
+  const alreadyExtra = new Set(S.extras.filter(e => e.itemId).map(e => e.itemId));
+
+  const insights = [];
+  S.items.forEach(it => {
+    const qty = Number(it.qty) || 0;
+    if (qty > INSIGHT_MAX_QTY) return;
+    if (qty < (Number(it.target) || 0)) return; // shortages() already covers this item
+    if (alreadyExtra.has(it.id)) return;
+
+    const uses = S.events.filter(e => e.itemId === it.id && e.type === 'USED' && e.ts >= cutoff);
+    if (uses.length < INSIGHT_MIN_USES) return;
+
+    const id = 'freq_' + it.id;
+    const lastDismissed = dismissed[id] || 0;
+    if (now - lastDismissed < INSIGHT_COOLDOWN_MS) return;
+
+    const days = Math.max(1, Math.round((now - cutoff) / 86400000));
+    insights.push({
+      id, itemId: it.id, type: 'frequent_use',
+      evidence: `נעשה בו שימוש ${uses.length} פעמים ב-${days} הימים האחרונים · נשארו ${qty}`
+    });
+  });
+  return insights.sort((a, b) => a.evidence.localeCompare(b.evidence));
+}
+
+function dismissInsight(id){
+  S.dismissedInsights = S.dismissedInsights || {};
+  S.dismissedInsights[id] = Date.now();
+  save(false);
+}
+
 function getNeedsAttention(){
   return S.items
     .filter(i => (Number(i.qty)||0) === 0 || (Number(i.qty)||0) < (Number(i.target)||0))
@@ -510,7 +586,7 @@ function compressImageFile(file, maxDim, quality){
 /* Space color is now only used as a small wayfinding dot in the Supplies
    filter chips (not on every card — the redesign asked for less color at
    once). Fixed palette, hashed by space id, so it's stable across renders. */
-const SPACE_PALETTE = ['#4FA89C','#C1683E','#8177B8','#5F84A6','#B8935F','#7C9473'];
+const SPACE_PALETTE = ['#4FA89C','#A67C9E','#8177B8','#5F84A6','#7893A0','#7C9473'];
 function spaceColor(spaceId){
   if (!spaceId) return null;
   let h = 0;
@@ -534,8 +610,8 @@ function pcardHTML(it){
   return `<div class="pcard ${q===0?'out':''}">
     ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<div class="swatch">${iconSvg(catIcon(it.catId),20)}</div>`}
     <div class="info" data-edit="${it.id}">
-      <div class="name trunc">${esc(it.name)}</div>
-      <div class="sub trunc">${esc(it.brand||catOf(it.catId).name)}</div>
+      <div class="name trunc">${esc(bidiTrunc(it.name,26))}</div>
+      <div class="sub trunc">${esc(bidiTrunc(it.brand||catOf(it.catId).name,26))}</div>
       ${tag}
     </div>
     ${stepperHTML(it)}
@@ -552,7 +628,7 @@ function familyCardHTML(fid, arr){
   return `<button class="pcard" data-fam="${esc(fid)}" style="text-align:right">
     <div class="swatch">${iconSvg(catIcon(arr[0].catId),20)}</div>
     <div class="info">
-      <div class="name trunc">${esc(name)}</div>
+      <div class="name trunc">${esc(bidiTrunc(name,26))}</div>
       <div class="sub trunc">${totalQty} יחידות · ${arr.length} גרסאות</div>
       ${tag}
     </div>
@@ -564,7 +640,7 @@ function openFamily(fid){
   if (!items.length) return;
   const name = items[0].familyName || items[0].name;
   sheet(`
-    <h2>${esc(name)}</h2>
+    <h2 class="bidi">${esc(name)}</h2>
     <p class="muted" style="margin-bottom:10px">${items.length} גרסאות · לשינוי שיוך משפחה, ערוך כל מוצר בנפרד</p>
     <div class="plist">${items.map(it=>pcardHTML(it)).join('')}</div>
     <button class="btn g" id="famClose" style="margin-top:14px">סגירה</button>
@@ -574,16 +650,46 @@ function openFamily(fid){
 /* ---------- render dispatch ---------- */
 const TAB_TITLES = { home:'Home OS', supplies:'מצרכים', kitchen:'מטבח', shopping:'קניות' };
 
+/* render() replaces #view's entire innerHTML, which — if left alone —
+   destroys and recreates whatever <input> the user is typing into on every
+   single keystroke (the "keyboard collapse" bug: a brand-new DOM node has
+   no focus, no selection, and drops the on-screen keyboard on mobile).
+   Snapshotting focus/selection before the replace and restoring it after
+   fixes every current and future text field inside #view without having
+   to move to a partial-DOM-patch renderer. */
 function render(){
   $('tabTitle').textContent = TAB_TITLES[UI.tab] || 'Home OS';
   document.querySelectorAll('.tabbar button[data-tab]').forEach(b =>
     b.classList.toggle('on', b.dataset.tab === UI.tab));
   const el = $('view');
+
+  const active = document.activeElement;
+  let focusState = null;
+  if (active && el.contains(active) && active.id){
+    focusState = {
+      id: active.id,
+      selStart: (typeof active.selectionStart === 'number') ? active.selectionStart : null,
+      selEnd:   (typeof active.selectionEnd === 'number') ? active.selectionEnd : null,
+      scrollTop: el.scrollTop
+    };
+  }
+
   if (UI.tab === 'supplies')      el.innerHTML = renderSupplies();
   else if (UI.tab === 'kitchen')  el.innerHTML = renderKitchen();
   else if (UI.tab === 'shopping') el.innerHTML = renderShoppingTab();
   else                            el.innerHTML = renderHome();
   wireTabExtras();
+
+  if (focusState){
+    const revived = $(focusState.id);
+    if (revived && (revived.tagName === 'INPUT' || revived.tagName === 'TEXTAREA')){
+      revived.focus({preventScroll:true});
+      if (focusState.selStart !== null){
+        try { revived.setSelectionRange(focusState.selStart, focusState.selEnd); } catch(e){}
+      }
+    }
+    el.scrollTop = focusState.scrollTop;
+  }
 }
 
 /* elements that live inside #view get replaced on every render(), so their
@@ -600,11 +706,11 @@ function wireTabExtras(){
       openItem(null, {inventoryMode:'kitchen', kitchenZone: UI.zone!=='all' ? UI.zone : 'pantry'});
   }
   if (UI.tab === 'shopping'){
-    if ($('shopNew')) $('shopNew').onkeydown = e => { if (e.key==='Enter') $('shopAdd').click(); };
-    if ($('shopAdd')) $('shopAdd').onclick = () => {
-      const t = $('shopNew').value.trim(); if(!t) return;
-      S.extras.push({id:uid(), text:t, got:false}); save(false); render();
-    };
+    if ($('shopNew')){
+      $('shopNew').oninput = e => { UI.shopQ = e.target.value; render(); };
+      $('shopNew').onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); commitShopAdd(); } };
+    }
+    if ($('shopAdd')) $('shopAdd').onclick = () => commitShopAdd();
     if ($('shopWa')) $('shopWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(shopText()), '_blank');
     if ($('shopCp')) $('shopCp').onclick = async () => {
       try { await navigator.clipboard.writeText(shopText()); toast('הועתק'); }
@@ -617,6 +723,15 @@ function wireTabExtras(){
         item.qty = (Number(item.qty)||0) + need;
         logEvent('PURCHASE', item.id, need, 'קנייה מהרשימה');
         delete item._got; n++;
+      });
+      S.extras.filter(e=>e.got).forEach(e=>{
+        if (!e.itemId) return;
+        const it = S.items.find(i=>i.id===e.itemId);
+        if (!it) return;
+        const qty = Math.max(1, Number(e.qty)||1);
+        it.qty = (Number(it.qty)||0) + qty;
+        logEvent('PURCHASE', it.id, qty, 'קנייה מרשימת קניות');
+        n++;
       });
       S.extras = S.extras.filter(e=>!e.got);
       save();
@@ -635,6 +750,7 @@ function renderHome(){
   const shopCount = getShoppingNeeds().length + S.extras.filter(e=>!e.got).length;
   const stat = householdStatus();
   const attention = getNeedsAttention().slice(0, 5);
+  const insights = computeInsights().slice(0, 2);
 
   return `
     <div class="hero row">
@@ -668,11 +784,35 @@ function renderHome(){
       </button>
     </div>
 
+    ${insights.length ? `
+      <div class="section-title">Home OS שם לב</div>
+      ${insights.map(ins => noticedCardHTML(ins)).join('')}
+    ` : ''}
+
     ${attention.length ? `
       <div class="section-title">צריך תשומת לב</div>
       ${attention.map(it => attnCardHTML(it)).join('')}
     ` : ''}
   `;
+}
+
+/* proactive suggestion cards on Home — same computeInsights() evidence as
+   Shopping's "Home OS מציע" section, just surfaced earlier and capped to
+   the top 2 so the dashboard stays calm rather than alarm-heavy */
+function noticedCardHTML(ins){
+  const it = S.items.find(i => i.id === ins.itemId);
+  if (!it) return '';
+  return `<div class="attn-card" style="align-items:flex-start">
+    <div class="ic" style="width:34px;height:34px;flex-shrink:0">${iconSvg('robot',16)}</div>
+    <div class="grow">
+      <div style="font-weight:600;font-size:13.5px" class="bidi">${esc(it.name)}</div>
+      <div class="muted bidi" style="margin-bottom:8px">${esc(ins.evidence)}</div>
+      <div class="row" style="gap:8px">
+        <button class="chip on" data-insight-accept="${esc(ins.id)}" style="padding:5px 12px">הוסף לרשימה</button>
+        <button class="chip" data-insight-dismiss="${esc(ins.id)}" style="padding:5px 12px">התעלם</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function attnCardHTML(it){
@@ -681,7 +821,7 @@ function attnCardHTML(it){
     <span class="dot-status" style="background:${isOut?'var(--danger)':'var(--warning)'}"></span>
     <div class="ic" style="width:34px;height:34px">${iconSvg(catIcon(it.catId),16)}</div>
     <div class="grow">
-      <div style="font-weight:600;font-size:13.5px">${esc(it.name)}</div>
+      <div style="font-weight:600;font-size:13.5px" class="bidi">${esc(it.name)}</div>
       <div class="muted">${isOut?'אזל':'נמוך'} · יש ${q}</div>
     </div>
   </div>`;
@@ -724,7 +864,7 @@ function renderSupplies(){
       <button class="iconbtn on" id="openAddSupply">${iconSvg('plus',15)}</button>
     </div>
     <div class="search" style="margin-bottom:10px">
-      <input id="supQ" placeholder="חיפוש מוצר או מותג…" value="${esc(UI.q)}">
+      <input id="supQ" dir="auto" placeholder="חיפוש מוצר או מותג…" value="${esc(UI.q)}">
       <span>${iconSvg('search',14)}</span>
     </div>
     <div class="scroll-x" style="margin-bottom:12px">${spaceChips}</div>
@@ -749,7 +889,7 @@ function renderKitchen(){
 
   return `
     <div class="search" style="margin-bottom:10px">
-      <input id="kitQ" placeholder="חיפוש…" value="${esc(UI.q)}">
+      <input id="kitQ" dir="auto" placeholder="חיפוש…" value="${esc(UI.q)}">
       <span>${iconSvg('search',14)}</span>
     </div>
     <div class="zonebar">
@@ -774,7 +914,7 @@ function kitchenCardHTML(it){
   return `<button class="pcard" data-kitchen-item="${it.id}" style="text-align:right">
     ${src ? `<img class="thumb" src="${esc(src)}" alt="">` : `<div class="swatch">${iconSvg(catIcon(it.catId),20)}</div>`}
     <div class="info">
-      <div class="name trunc">${esc(it.name)}</div>
+      <div class="name trunc">${esc(bidiTrunc(it.name,26))}</div>
       <div class="sub trunc">${q} יחידות</div>
       ${tag}
     </div>
@@ -785,8 +925,8 @@ function openKitchenActions(id){
   const it = S.items.find(i=>i.id===id);
   if (!it) return;
   sheet(`
-    <h2>${esc(it.name)}</h2>
-    <p class="muted" style="margin-bottom:14px">${esc(it.brand||'')}${it.brand?' · ':''}יש ${Number(it.qty)||0} יחידות</p>
+    <h2 class="bidi">${esc(it.name)}</h2>
+    <p class="muted bidi" style="margin-bottom:14px">${esc(it.brand||'')}${it.brand?' · ':''}יש ${Number(it.qty)||0} יחידות</p>
     <button class="btn a" id="kaUse">השתמשתי באחד</button>
     <button class="btn g" id="kaAdd" style="margin-top:8px">הוספת מלאי</button>
     <button class="btn g" id="kaEdit" style="margin-top:8px">עריכה</button>
@@ -838,7 +978,10 @@ function renderShoppingTab(){
   const outNow  = supplyNeeds.filter(n => Number(n.item.qty) === 0);
   const lowSoon = supplyNeeds.filter(n => Number(n.item.qty) > 0);
   const extras = S.extras;
-  const empty = !needs.length && !extras.length;
+  const insights = computeInsights();
+  // "nothing to buy" must never coexist with actual suggestions on screen —
+  // if Home OS is proposing items, the list is not empty, full stop.
+  const empty = !needs.length && !extras.length && !insights.length;
 
   function bucket(title, list){
     if (!list.length) return '';
@@ -848,21 +991,64 @@ function renderShoppingTab(){
     </div>`;
   }
 
+  const matches = shoppingMatches(UI.shopQ);
+  const suggestHTML = UI.shopQ.trim() ? `<div class="group" id="shopSuggest" style="margin-bottom:12px">
+    ${matches.length ? matches.map(it => `
+      <div class="shop-item" data-shopsuggest="${esc(it.id)}" style="cursor:pointer">
+        <div class="ic" style="width:28px;height:28px;flex-shrink:0">${iconSvg(catIcon(it.catId),14)}</div>
+        <div class="grow">
+          <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(it.name,40))}</div>
+          <div class="muted bidi">${esc(bidiTrunc(it.brand||'',40))}${it.brand?' · ':''}יש ${Number(it.qty)||0}</div>
+        </div>
+        <span class="need" style="background:var(--ok-soft);color:var(--success)">הוסף</span>
+      </div>`).join('')
+      : `<div class="shop-item"><div class="muted grow">אין מוצר קיים תואם — הקשה על + להוספה כפריט חדש</div></div>`}
+  </div>` : '';
+
+  const smartHTML = insights.length ? `<div class="shop-bucket">
+    <div class="section-title">Home OS מציע</div>
+    <div class="group">${insights.map(ins => {
+      const it = S.items.find(i => i.id === ins.itemId);
+      if (!it) return '';
+      return `<div class="shop-item" style="align-items:flex-start">
+        <div class="ic" style="width:28px;height:28px;flex-shrink:0">${iconSvg('robot',14)}</div>
+        <div class="grow">
+          <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(it.name,40))}</div>
+          <div class="muted bidi">${esc(ins.evidence)}</div>
+        </div>
+        <div class="row" style="gap:6px;flex-shrink:0">
+          <button class="chip on" data-insight-accept="${esc(ins.id)}" style="padding:4px 10px;font-size:11.5px">הוסף</button>
+          <button class="chip" data-insight-dismiss="${esc(ins.id)}" style="padding:4px 10px;font-size:11.5px">התעלם</button>
+        </div>
+      </div>`;
+    }).join('')}</div>
+  </div>` : '';
+
   const extrasHTML = extras.length ? `<div class="shop-bucket">
-    <div class="section-title">נוסף ידנית</div>
-    <div class="group">${extras.map(e=>`
+    <div class="section-title">נוסף לרשימה</div>
+    <div class="group">${extras.map(e=>{
+      const linked = e.itemId ? S.items.find(i=>i.id===e.itemId) : null;
+      const label = linked ? linked.name : e.text;
+      const sub = linked ? (linked.brand || '') : '';
+      return `
       <div class="shop-item">
         <div class="tick ${e.got?'on':''}" data-xgot="${e.id}">✓</div>
-        <div class="grow trunc" style="font-weight:600;font-size:13.5px;${e.got?'opacity:.45;text-decoration:line-through':''}">${esc(e.text)}</div>
+        <div class="grow" style="${e.got?'opacity:.45;text-decoration:line-through':''}">
+          <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(label,40))}</div>
+          ${sub ? `<div class="muted bidi">${esc(bidiTrunc(sub,40))}</div>` : ''}
+        </div>
         <button class="iconbtn" style="width:26px;height:26px;background:transparent" data-xdel="${e.id}">✕</button>
-      </div>`).join('')}</div>
+      </div>`;
+    }).join('')}</div>
   </div>` : '';
 
   return `
-    <div class="row" style="margin-bottom:12px">
-      <input id="shopNew" class="grow" placeholder="הוסף פריט חופשי…">
+    <div class="row" style="margin-bottom:10px">
+      <input id="shopNew" class="grow" dir="auto" autocomplete="off" placeholder="חפש מוצר קיים או הוסף פריט חדש…" value="${esc(UI.shopQ)}">
       <button class="iconbtn on" id="shopAdd">${iconSvg('plus',16)}</button>
     </div>
+    ${suggestHTML}
+    ${smartHTML}
     ${empty ? `<div class="empty"><div class="icon" style="justify-content:center">${iconSvg('check',34)}</div><div>אין מה לקנות</div></div>` : ''}
     ${bucket('השבוע', kitchenNeeds)}
     ${bucket('בקרוב', outNow)}
@@ -881,8 +1067,8 @@ function shopItemHTML(n){
   return `<div class="shop-item">
     <div class="tick ${item._got?'on':''}" data-need="${item.id}">✓</div>
     <div class="grow" style="${item._got?'opacity:.45;text-decoration:line-through':''}">
-      <div class="trunc" style="font-weight:600;font-size:13.5px">${esc(item.name)}</div>
-      <div class="muted trunc">${esc(item.brand||'')}${item.note?' · '+esc(item.note):''}</div>
+      <div class="bidi" style="font-weight:600;font-size:13.5px">${esc(bidiTrunc(item.name,40))}</div>
+      <div class="muted bidi">${esc(bidiTrunc(item.brand||'',40))}${item.note?' · '+esc(bidiTrunc(item.note,40)):''}</div>
     </div>
     <span class="need">×${n.need}</span>
   </div>`;
@@ -901,8 +1087,82 @@ function shopText(){
     });
   });
   const ex = S.extras.filter(e=>!e.got);
-  if (ex.length){ t += `\nנוסף ידנית\n`; ex.forEach(e=> t += `• ${e.text}\n`); }
+  if (ex.length){
+    t += `\nנוסף לרשימה\n`;
+    ex.forEach(e => {
+      const it = e.itemId ? S.items.find(i=>i.id===e.itemId) : null;
+      t += `• ${it ? it.name : e.text}\n`;
+    });
+  }
   return t.trim() || 'הרשימה ריקה';
+}
+
+/* ---------- Shopping Smart Add ----------
+   Typing into the shopping field searches the household's own catalog
+   first — tapping a match adds a reference to that real item (so its
+   brand/stock stay attached) instead of a disconnected line of text.
+   Only when nothing in the catalog matches does it fall back to a plain
+   manual entry, exactly per the release priority: existing items before
+   manual extras. */
+/* Full-catalog substring match, independent of shopping-list membership.
+   This is the one function that may ever decide "does typed text refer to
+   a real product" — shopping-list membership is a display concern, never
+   a matching concern, precisely because conflating the two (an earlier
+   version filtered already-listed items out before deciding) is what let
+   an already-short item like "קפה נמס וניל" spawn a duplicate manual
+   "קפה" entry: the filtered set came back empty and looked like "no match"
+   even though the catalog match was real. */
+function catalogMatches(q){
+  q = (q || '').trim().toLowerCase();
+  if (!q) return [];
+  return S.items.filter(it =>
+    (it.name||'').toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q));
+}
+/* Live dropdown only: same matches, minus items already on the list —
+   purely a display nicety (no point suggesting something already there).
+   commitShopAdd() below must NOT use this for its match-count decision. */
+function shoppingMatches(q){
+  if (!(q||'').trim()) return [];
+  const alreadyListed = new Set([
+    ...getShoppingNeeds().map(n => n.item.id),
+    ...S.extras.filter(e => e.itemId).map(e => e.itemId)
+  ]);
+  return catalogMatches(q).filter(it => !alreadyListed.has(it.id)).slice(0, 5);
+}
+
+function addShoppingItemRef(itemId){
+  const it = S.items.find(i => i.id === itemId);
+  if (!it) return;
+  const alreadyShort = getShoppingNeeds().some(n => n.item.id === itemId);
+  const alreadyExtra = S.extras.some(e => e.itemId === itemId);
+  if (alreadyShort || alreadyExtra){ toast('כבר ברשימת הקניות'); return; }
+  S.extras.push({id:uid(), itemId, text:it.name, got:false, qty:1});
+  save(false);
+  toast(`"${it.name}" נוסף לרשימה`);
+}
+
+function commitShopAdd(pickedItemId){
+  if (pickedItemId){ addShoppingItemRef(pickedItemId); UI.shopQ = ''; render(); return; }
+  const text = (UI.shopQ || '').trim();
+  if (!text) return;
+  const q = text.toLowerCase();
+  const exact = S.items.find(it =>
+    (it.name||'').toLowerCase() === q || (it.brand && `${it.brand} ${it.name}`.toLowerCase() === q));
+  if (exact){ addShoppingItemRef(exact.id); UI.shopQ = ''; render(); return; }
+
+  // No exact hit — decide against the FULL catalog (catalogMatches, not the
+  // already-listed-filtered shoppingMatches): one match uses it, whether or
+  // not it happens to already be on the list (addShoppingItemRef gives the
+  // correct "already on the list" feedback either way); several matches is
+  // genuinely ambiguous — even if only one of them isn't yet listed — so
+  // this asks instead of guessing; zero matches falls back to manual text.
+  const matches = catalogMatches(text);
+  if (matches.length === 1){ addShoppingItemRef(matches[0].id); UI.shopQ = ''; render(); return; }
+  if (matches.length > 1){ toast('כמה מוצרים תואמים — בחר אחד מהרשימה למטה'); render(); return; }
+
+  S.extras.push({id:uid(), text, got:false}); save(false);
+  UI.shopQ = '';
+  render();
 }
 
 /* ---------- item CRUD ---------- */
@@ -944,14 +1204,16 @@ function openItem(id, defaults){
       <button type="button" class="btn g" id="photoCamBtn">📷 צלם</button>
       <button type="button" class="btn g" id="photoGalBtn">🖼️ מהגלריה</button>
     </div>
+    ${it ? `<button type="button" class="btn g" id="findPhotoBtn" style="margin-bottom:10px">🔎 חפש תמונה באינטרנט</button>` : ''}
     <input type="file" accept="image/*" capture="environment" id="fPhotoCam" class="hidden">
     <input type="file" accept="image/*" id="fPhotoGal" class="hidden">
 
-    <div class="field"><label>שם המוצר *</label><input id="fName" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
-    <div class="field"><label>מותג</label><input id="fBrand" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
+    <div class="field"><label>שם המוצר *</label><input id="fName" dir="auto" value="${it?esc(it.name):''}" placeholder="למשל: שמפו"></div>
+    <div class="field"><label>מותג</label><input id="fBrand" dir="auto" value="${it?esc(it.brand||''):''}" placeholder="למשל: Hawaii"></div>
+    <div class="field"><label>ברקוד (רשות)</label><input id="fBarcode" dir="ltr" inputmode="numeric" value="${it?esc(it.barcode||''):''}" placeholder="למשל: 7290000000000"></div>
     <div class="field">
       <label>משפחת מוצר (רשות)</label>
-      <input id="fFamily" list="famList" value="${it?esc(it.familyName||''):''}" placeholder="למשל: AXE דאודורנט">
+      <input id="fFamily" dir="auto" list="famList" value="${it?esc(it.familyName||''):''}" placeholder="למשל: AXE דאודורנט">
       <datalist id="famList">${famNames.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
       <div class="muted" id="famHint" style="margin-top:4px"></div>
     </div>
@@ -963,7 +1225,7 @@ function openItem(id, defaults){
       <div class="field"><label>כמות נוכחית</label><input id="fQty" type="number" inputmode="numeric" min="0" value="${it?(Number(it.qty)||0):1}"></div>
       <div class="field"><label>כמות יעד</label><input id="fTarget" type="number" inputmode="numeric" min="0" value="${it?(Number(it.target)||1):1}"></div>
     </div>
-    <div class="field"><label>הערה</label><input id="fNote" value="${it?esc(it.note||''):''}" placeholder="גודל, חנות מועדפת, מחיר…"></div>
+    <div class="field"><label>הערה</label><input id="fNote" dir="auto" value="${it?esc(it.note||''):''}" placeholder="גודל, חנות מועדפת, מחיר…"></div>
     <button class="btn a" id="fSave" style="margin-top:4px">שמירה</button>
     ${it?`<button class="btn r" id="fDel" style="margin-top:8px">מחיקת המוצר</button>`:''}
     <button class="btn g" id="fCancel" style="margin-top:8px">ביטול</button>
@@ -980,7 +1242,7 @@ function openItem(id, defaults){
     function paintPhoto(){
       $('photoPreviewWrap').innerHTML = pendingPhoto
         ? `<div style="position:relative"><img class="photo-box" src="${esc(pendingPhoto)}" alt="">
-             <button type="button" id="photoRemove" class="iconbtn" style="position:absolute;top:6px;left:6px;background:rgba(17,24,39,.55);color:#fff">✕</button></div>`
+             <button type="button" id="photoRemove" class="iconbtn" style="position:absolute;top:6px;left:6px;background:rgba(17,20,19,.6);color:#fff">✕</button></div>`
         : `<div class="photo-empty">אין תמונה</div>`;
       if ($('photoRemove')) $('photoRemove').onclick = () => { pendingPhoto = ''; paintPhoto(); };
     }
@@ -988,6 +1250,7 @@ function openItem(id, defaults){
 
     $('photoCamBtn').onclick = () => $('fPhotoCam').click();
     $('photoGalBtn').onclick = () => $('fPhotoGal').click();
+    if ($('findPhotoBtn')) $('findPhotoBtn').onclick = () => { closeSheet(); findPhotoForItem(it); };
     async function handlePhotoFile(e){
       const file = e.target.files[0]; e.target.value = '';
       if (!file) return;
@@ -1016,6 +1279,7 @@ function openItem(id, defaults){
 
       const data = {
         name, brand:$('fBrand').value.trim(),
+        barcode: $('fBarcode').value.replace(/[^0-9]/g,'').slice(0,20),
         spaceId:$('fSpace').value, catId:$('fCat').value,
         qty:Math.max(0, parseInt($('fQty').value)||0),
         // blank target keeps the previous value instead of silently becoming 0
@@ -1110,6 +1374,13 @@ function openSettings(){
       <p class="muted" style="margin-bottom:8px">בדיקה חד-פעמית של כל המלאי מול עצמו, למקרה שאותו מוצר נכנס פעמיים בשמות שונים.</p>
       <button class="btn g" id="dedupeBtn">חפש כפילויות</button>
 
+      <div style="margin-top:20px;font-weight:700;font-size:13.5px">תמונות מוצר</div>
+      <p class="muted" style="margin-bottom:8px">
+        חיפוש תמונות אמיתיות מ-Open Food Facts / Open Beauty Facts עבור מוצרים שאין להם תמונה.
+        כל תמונה מוצגת לאישור לפני שהיא נשמרת — שום דבר לא משתנה אוטומטית.
+      </p>
+      <button class="btn g" id="photoBatchBtn">חפש תמונות למוצרים חסרי תמונה</button>
+
       <div style="margin-top:20px;font-weight:700;font-size:13.5px">סנכרון Firebase</div>
       <p class="muted" style="margin-bottom:8px">
         צור פרויקט ב-console.firebase.google.com, הפעל Firestore ו-Anonymous Authentication,
@@ -1142,6 +1413,7 @@ function openSettings(){
       closeSheet(); openSettings();
     };
     $('dedupeBtn').onclick = openDedupe;
+    $('photoBatchBtn').onclick = openPhotoBatch;
     $('fbSave').onclick = () => {
       const raw = $('fbCfg').value.trim();
       if (!raw) return toast('הדבק config');
@@ -1290,6 +1562,289 @@ async function uploadItemPhoto(item, dataUrl){
    paths return the same shape of result to the rest of the app.
    ============================================================ */
 const AI_ENDPOINT = '/api/ai-hub';
+
+/* ---------- Find product photo ----------
+   Deterministic lookup against Open Food Facts / Open Beauty Facts via the
+   server's find_product_photo task — no Gemini involved, works even without
+   a configured key. Barcode first, then brand+name text search. Every call
+   goes through the server (never a direct browser fetch to those hosts),
+   which is what actually enforces the host allowlist/timeouts; the client
+   only ever displays URLs the server already validated. Nothing about an
+   item changes until the user taps a specific candidate — a reject or a
+   "no match" leaves the existing photo (if any) untouched. */
+const PHOTO_CACHE_TTL_MS = 30 * 24 * 3600 * 1000;
+const PHOTO_BATCH_LIMIT = 20;
+const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+/* mirrors src/ai-hub.js's PHOTO_ALLOWED_HOSTS — the server already
+   validates candidate.imageUrl against this before it ever reaches the
+   client, but the actual image fetch below can still be redirected
+   somewhere else at fetch time, so it's re-checked against the final
+   (post-redirect) response URL too. */
+const PHOTO_ALLOWED_HOSTS = new Set([
+  'world.openfoodfacts.org',   'images.openfoodfacts.org',   'static.openfoodfacts.org',
+  'world.openbeautyfacts.org', 'images.openbeautyfacts.org', 'static.openbeautyfacts.org'
+]);
+function isAllowedPhotoUrl(u){
+  try { const p = new URL(u); return p.protocol === 'https:' && PHOTO_ALLOWED_HOSTS.has(p.hostname); }
+  catch { return false; }
+}
+/* Raster formats only — explicit allowlist, not a loose "image/*" prefix
+   check (which would also accept image/svg+xml, a vector format that can
+   carry script). */
+const PHOTO_ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+function photoCacheKey(item){
+  return item.barcode
+    ? 'bc:' + item.barcode
+    : 'q:' + ((item.brand || '') + '|' + (item.name || '')).toLowerCase().trim();
+}
+
+/* returns an array of candidates (possibly empty = confirmed no match), or
+   null on a request-level error (network/server failure, already toasted) */
+async function runProductPhotoSearch(item, opts){
+  opts = opts || {};
+  const key = photoCacheKey(item);
+  if (opts.useCache){
+    const cached = S.photoLookupCache[key];
+    if (cached && (Date.now() - cached.ts) < PHOTO_CACHE_TTL_MS){
+      return cached.negative ? [] : cached.candidates;
+    }
+  }
+  try {
+    const res = await fetch(AI_ENDPOINT, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'find_product_photo', barcode: item.barcode || '', name: item.name, brand: item.brand || '' })
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `שגיאה ${res.status}`);
+    const data = await res.json();
+    const candidates = data.candidates || [];
+    S.photoLookupCache[key] = { ts: Date.now(), negative: !candidates.length, candidates };
+    save(false);
+    return candidates;
+  } catch (err) {
+    if (!opts.silent) toast('חיפוש התמונה נכשל: ' + err.message);
+    return null;
+  }
+}
+
+/* Downloads and validates a candidate image's actual bytes — pure fetch,
+   no item mutation, so a caller can decide what to do with the item only
+   once it knows whether this genuinely succeeded. Every failure path
+   (network/CORS/timeout, non-2xx, any redirect, wrong content-type,
+   oversized, decode failure) is reported identically as {ok:false} — there
+   is no "couldn't verify but let's show it online anyway" branch in here;
+   that decision is the caller's, made explicitly, never implicit in this
+   function. Streams the response body with a running byte count instead of
+   buffering the whole thing first, so an oversized response is caught
+   before it's fully in memory. */
+async function downloadPhotoBytes(url){
+  if (!isAllowedPhotoUrl(url)) return { ok: false, reason: 'url' };
+  let res;
+  try {
+    // redirect:'manual' -> any redirect comes back as an opaque, unusable
+    // "opaqueredirect" response instead of being followed. Rejecting every
+    // redirect outright (rather than trying to validate where it leads) is
+    // the deliberately simple, safe choice here.
+    res = await fetch(url, { mode: 'cors', redirect: 'manual', signal: AbortSignal.timeout(10000) });
+  } catch (e) { return { ok: false, reason: 'network' }; }
+  if (res.type === 'opaqueredirect') return { ok: false, reason: 'redirect' };
+  if (!res.ok) return { ok: false, reason: 'http' };
+  const contentType = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (!PHOTO_ALLOWED_MIME.has(contentType)) return { ok: false, reason: 'mime' };
+  const declaredLen = Number(res.headers.get('content-length') || 0);
+  if (declaredLen && declaredLen > PHOTO_MAX_BYTES) return { ok: false, reason: 'size' };
+
+  let blob;
+  if (res.body && res.body.getReader) {
+    const reader = res.body.getReader();
+    const chunks = [];
+    let total = 0;
+    while (true) {
+      let step;
+      try { step = await reader.read(); }
+      catch (e) { return { ok: false, reason: 'network' }; }
+      if (step.done) break;
+      total += step.value.length;
+      if (total > PHOTO_MAX_BYTES) { reader.cancel().catch(()=>{}); return { ok: false, reason: 'size' }; }
+      chunks.push(step.value);
+    }
+    blob = new Blob(chunks, { type: contentType });
+  } else {
+    // Environments without a streamable response body: still bounded by
+    // the declared-length check above; re-check the actual size too.
+    try { blob = await res.blob(); } catch (e) { return { ok: false, reason: 'network' }; }
+    if (blob.size > PHOTO_MAX_BYTES) return { ok: false, reason: 'size' };
+  }
+
+  try { return { ok: true, dataUrl: await compressImageFile(blob, 640, 0.7) }; }
+  catch (e) { return { ok: false, reason: 'decode' }; }
+}
+
+/* Applies a chosen candidate to the item object in place. Only ever
+   mutates the item on a fully verified, downloaded, offline-storable copy
+   — ANY download failure (network, CORS, timeout, HTTP error, invalid
+   content, decode failure) leaves the item completely untouched: existing
+   photo/photoUrl/photoSource survive exactly as they were. There is no
+   automatic "show it online-only instead" fallback here — that is a
+   separate, explicit user choice (see confirmOnlineOnlyPhoto below), only
+   ever offered for items that have no photo at all to preserve.
+   Returns {applied, offline, reason}. */
+async function applyFoundPhotoToItem(item, candidate){
+  const result = await downloadPhotoBytes(candidate.imageUrl);
+  if (!result.ok) return { applied: false, offline: false, reason: result.reason };
+
+  item.photo = result.dataUrl;
+  item.photoUrl = candidate.imageUrl;
+  item.photoSource = { source: candidate.source, url: candidate.sourceUrl, license: candidate.license || '', licenseUrl: candidate.licenseUrl || '' };
+  uploadItemPhoto(item, result.dataUrl);
+  return { applied: true, offline: true };
+}
+
+/* The one place an item can end up with photoUrl set but no local offline
+   copy — and only ever reached through an explicit confirmation click from
+   the user (see confirmOnlineOnlyPhoto), never automatically, and only
+   offered when the item had no existing photo to begin with (so nothing is
+   being cleared/overwritten here — there was nothing to preserve). */
+function applyOnlinePhotoOnly(item, candidate){
+  item.photo = '';
+  item.photoUrl = candidate.imageUrl;
+  item.photoSource = { source: candidate.source, url: candidate.sourceUrl, license: candidate.license || '', licenseUrl: candidate.licenseUrl || '', onlineOnly: true };
+}
+
+function confirmOnlineOnlyPhoto(item, candidate){
+  sheet(`
+    <h2>לא ניתן היה להוריד את התמונה</h2>
+    <p class="muted bidi" style="margin:8px 0 14px">התמונה לא נשמרה במכשיר (בעיית רשת או הרשאות בין־מקורות). אפשר להציג אותה ישירות מהמקור המקוון בלבד — היא לא תישמר לצפייה אופליין ותלויה בחיבור לאינטרנט בכל פעם שהפריט מוצג.</p>
+    <button class="btn a" id="pcOnlineOnly">הצג מהמקור המקוון בלבד</button>
+    <button class="btn g" id="pcOnlineCancel" style="margin-top:8px">ביטול</button>
+  `, () => {
+    $('pcOnlineCancel').onclick = closeSheet;
+    $('pcOnlineOnly').onclick = () => {
+      applyOnlinePhotoOnly(item, candidate);
+      save();
+      closeSheet();
+      toast('התמונה תוצג מהמקור המקוון בלבד (לא נשמרה לצפייה אופליין)');
+    };
+  });
+}
+
+async function findPhotoForItem(item){
+  toast('מחפש תמונה…');
+  const candidates = await runProductPhotoSearch(item, { useCache: false });
+  if (candidates === null) return; // error already toasted
+  openPhotoCandidates(item, candidates);
+}
+
+function openPhotoCandidates(item, candidates){
+  if (!candidates.length){
+    sheet(`
+      <h2>לא נמצאה תמונה</h2>
+      <p class="muted bidi" style="margin:8px 0 14px">לא נמצאה תמונה תואמת ב-Open Food Facts / Open Beauty Facts עבור "${esc(item.name)}". אפשר לצלם תמונה ידנית מהעריכה הרגילה.</p>
+      <button class="btn g" id="pcClose">סגירה</button>
+    `, () => { $('pcClose').onclick = closeSheet; });
+    return;
+  }
+  sheet(`
+    <h2>נמצאו תמונות אפשריות</h2>
+    <p class="muted" style="margin-bottom:10px">בחר תמונה אחת, או בטל. שום דבר לא משתנה בלי אישור — התמונה הקיימת (אם יש) לא נמחקת עד שתבחר.</p>
+    <div>${candidates.map((c,i)=>`
+      <div class="group" style="margin-bottom:10px;padding:10px">
+        <img src="${esc(c.imageUrl)}" alt="" style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--surface-2)">
+        <div class="muted bidi" style="margin-top:6px">${esc(c.productName||'')}${c.brand?' · '+esc(c.brand):''}</div>
+        <div class="muted" style="margin-bottom:2px">מקור: <a href="${esc(c.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(c.source)}</a></div>
+        ${c.license ? `<div class="muted" style="margin-bottom:8px;font-size:12px">${esc(c.license)}${c.licenseUrl ? ` · <a href="${esc(c.licenseUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">פרטי רישיון</a>` : ''}</div>` : ''}
+        <button class="btn a" data-pick="${i}">בחר תמונה זו</button>
+      </div>`).join('')}</div>
+    <button class="btn g" id="pcCancel">ביטול</button>
+  `, () => {
+    $('pcCancel').onclick = closeSheet;
+    document.querySelectorAll('[data-pick]').forEach(btn => btn.onclick = async () => {
+      btn.disabled = true; btn.textContent = 'שומר…';
+      const c = candidates[Number(btn.dataset.pick)];
+      const hadPhoto = !!photoSrc(item);
+      const result = await applyFoundPhotoToItem(item, c);
+      if (result.applied){
+        closeSheet();
+        save();
+        toast('התמונה נשמרה (כולל לצפייה אופליין)');
+        return;
+      }
+      // Download failed for any reason — the item is untouched either way.
+      if (hadPhoto){
+        closeSheet();
+        toast('לא ניתן היה להוריד את התמונה — התמונה הקיימת נשארה ללא שינוי');
+        return;
+      }
+      // No existing photo to preserve: offer online-only display as a
+      // separate, explicit confirmation — never an automatic fallback.
+      btn.disabled = false; btn.textContent = 'בחר תמונה זו';
+      confirmOnlineOnlyPhoto(item, c);
+    });
+  });
+}
+
+/* batch: only items missing a photo, capped, one network call at a time
+   (never in parallel — this is exactly the "quota limits" case the spec
+   calls out), cache-aware so re-running doesn't repeat recent lookups.
+   Nothing is saved until the user explicitly checks candidates and taps
+   the apply button — matches "selected-item batches only after explicit
+   approval". */
+function openPhotoBatch(){
+  const targets = S.items.filter(i => !photoSrc(i)).slice(0, PHOTO_BATCH_LIMIT);
+  if (!targets.length) return toast('לכל המוצרים כבר יש תמונה');
+  sheet(`
+    <h2>חיפוש תמונות למוצרים חסרי תמונה</h2>
+    <p class="muted" id="pbStatus" style="margin-bottom:10px">בודק ${targets.length} מוצרים…</p>
+    <div id="pbList"></div>
+    <button class="btn g" id="pbClose" style="margin-top:10px">סגירה</button>
+  `, async () => {
+    $('pbClose').onclick = closeSheet;
+    const results = [];
+    let stoppedEarly = false;
+    for (let i = 0; i < targets.length; i++){
+      const it = targets[i];
+      if (!$('pbStatus')) return; // sheet was closed mid-batch
+      $('pbStatus').textContent = `בודק ${i+1} מתוך ${targets.length}: ${it.name}`;
+      const candidates = await runProductPhotoSearch(it, { useCache: true, silent: true });
+      // A real error (network/outage/rate-limit) — not "no match" — stop
+      // instead of burning through every remaining item against a database
+      // that's already struggling. No automatic retry; the user can just
+      // run the batch again later.
+      if (candidates === null){ stoppedEarly = true; break; }
+      if (candidates.length) results.push({ item: it, candidate: candidates[0] });
+    }
+    if (!$('pbStatus')) return;
+    $('pbStatus').textContent = stoppedEarly
+      ? `נעצר אחרי ${results.length ? 'כמה תוצאות' : 'ללא תוצאות'} — מאגר התמונות לא זמין כרגע. נסה שוב מאוחר יותר.`
+      : results.length
+        ? `נמצאו ${results.length} תמונות אפשריות — בחר אילו לשמור`
+        : 'לא נמצאו תמונות תואמות לאף מוצר';
+    $('pbList').innerHTML = results.map((r,idx)=>`
+      <div class="shop-item">
+        <img src="${esc(r.candidate.imageUrl)}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;background:var(--surface-2)">
+        <div class="grow trunc bidi">${esc(r.item.name)}</div>
+        <label class="row" style="gap:6px;flex-shrink:0"><input type="checkbox" class="pbPick" data-idx="${idx}" checked style="width:18px;height:18px"> שמור</label>
+      </div>`).join('');
+    if (results.length){
+      $('pbList').insertAdjacentHTML('beforeend', `<button class="btn a" id="pbApply" style="margin-top:10px">שמירת הנבחרים</button>`);
+      $('pbApply').onclick = async () => {
+        $('pbApply').disabled = true; $('pbApply').textContent = 'שומר…';
+        let saved = 0, rejected = 0;
+        for (const cb of document.querySelectorAll('.pbPick:checked')){
+          const r = results[Number(cb.dataset.idx)];
+          const result = await applyFoundPhotoToItem(r.item, r.candidate);
+          if (result.applied) saved++; else rejected++;
+        }
+        save();
+        toast(saved
+          ? `${saved} תמונות נשמרו${rejected ? ` · ${rejected} נדחו באימות` : ''}`
+          : (rejected ? `${rejected} תמונות נדחו באימות — שום דבר לא נשמר` : 'לא נבחר כלום'));
+        closeSheet();
+      };
+    }
+  });
+}
+
 const MAX_SHOTS = 4;
 let camStream = null, shots = [];
 /* which mode new items from the current scan/ask session should default
@@ -1554,10 +2109,67 @@ function similarity(nameA, brandA, nameB, brandB){
   if (brandA && brandB && brandA.toLowerCase().trim() === brandB.toLowerCase().trim()) score += 0.15;
   return score;
 }
+
+/* ---------- dedupe safety: flavour/scent/size must never be silently
+   equated with "same product" ----------
+   A high token-overlap score alone can't tell "קפה נמס וניל" from "קפה נמס
+   מוקה" apart — same brand, same base product, only the variant word
+   differs. variantConflict() looks specifically for that: if both items
+   name a *different* known flavour/scent, or a *different* explicit size,
+   they are excluded as candidates regardless of how high the overlap score
+   is. This only ever removes false-positive pairs — it can't turn two
+   truly-identical items into a conflict, since matching or absent variant
+   words never trigger it. */
+const VARIANT_TAGS = [
+  'וניל','מוקה','קרמל','שוקולד','אגוזי לוז','פרג','קוקוס','תפוח','לימון','תות','אפרסק',
+  'מנטה','נענע','מלון','לבנדר','ים תיכון','אוקיינוס','כביסה','ורדים','הדרים','ליים',
+  'משמש','דובדבן','רימון','וניל-מוקה'
+];
+function variantTagsOf(text){
+  const low = (text||'').toLowerCase();
+  return VARIANT_TAGS.filter(tag => low.includes(tag));
+}
+function sizeTokenOf(text){
+  const m = (text||'').match(/(\d+(?:\.\d+)?)\s*(מ"?ל|מ״ל|ml|ליטר|גרם|ג'|g|kg|ק"?ג)/i);
+  if (!m) return null;
+  return m[1] + m[2].toLowerCase().replace(/["'׳]/g,'');
+}
+function variantConflict(a, b){
+  const textA = [a.name, a.variantName, a.note].filter(Boolean).join(' ');
+  const textB = [b.name, b.variantName, b.note].filter(Boolean).join(' ');
+  const tagsA = variantTagsOf(textA), tagsB = variantTagsOf(textB);
+  if (tagsA.length && tagsB.length && !tagsA.some(t => tagsB.includes(t))) return true;
+  const sizeA = sizeTokenOf(textA), sizeB = sizeTokenOf(textB);
+  if (sizeA && sizeB && sizeA !== sizeB) return true;
+  return false;
+}
+
+/* ---------- persisted "not the same product" decisions ----------
+   Keyed by the id pair AND a snapshot of both items' name+brand at
+   decision time — if either item's identity is edited afterward, the
+   snapshot no longer matches and the dismissal stops applying, so a real
+   identity change (e.g. a mislabeled item corrected later) can surface the
+   pair again instead of hiding it forever. */
+function dupIdentitySnapshot(it){
+  return `${(it.name||'').toLowerCase().trim()}::${(it.brand||'').toLowerCase().trim()}`;
+}
+function dupDecisionKey(a, b){ return [a.id, b.id].sort().join('|'); }
+function isNotDuplicate(a, b){
+  const rec = S.notDuplicates[dupDecisionKey(a, b)];
+  if (!rec) return false;
+  const sa = dupIdentitySnapshot(a), sb = dupIdentitySnapshot(b);
+  return (rec.snapA === sa && rec.snapB === sb) || (rec.snapA === sb && rec.snapB === sa);
+}
+function markNotDuplicate(a, b){
+  S.notDuplicates[dupDecisionKey(a, b)] = { snapA: dupIdentitySnapshot(a), snapB: dupIdentitySnapshot(b), ts: Date.now() };
+  save(false);
+}
+
 function fuzzyCandidate(name, brand, excludeId){
   let best = null, bestScore = 0;
   S.items.forEach(it => {
     if (it.id === excludeId) return;
+    if (variantConflict({name, brand}, it)) return;
     const score = similarity(name, brand, it.name, it.brand);
     if (score > bestScore){ bestScore = score; best = it; }
   });
@@ -1568,6 +2180,7 @@ function findDuplicatePairs(){
   for (let i = 0; i < S.items.length; i++){
     for (let j = i + 1; j < S.items.length; j++){
       const a = S.items[i], b = S.items[j];
+      if (variantConflict(a, b) || isNotDuplicate(a, b)) continue;
       const score = similarity(a.name, a.brand, b.name, b.brand);
       if (score >= 0.5) pairs.push({a, b, score, reason:null});
     }
@@ -1628,7 +2241,10 @@ function paintDedupeList(){
     mergeDuplicates(side === 'a' ? p.a.id : p.b.id, side === 'a' ? p.b.id : p.a.id);
   });
   list.querySelectorAll('[data-skip]').forEach(btn => btn.onclick = () => {
-    dedupePairs.splice(Number(btn.dataset.skip), 1);
+    const idx = Number(btn.dataset.skip);
+    const p = dedupePairs[idx];
+    markNotDuplicate(p.a, p.b);
+    dedupePairs.splice(idx, 1);
     paintDedupeList();
   });
 }
@@ -1679,6 +2295,10 @@ async function runAiDedupe(){
         if (existing.has(key)) continue;
         const a = S.items.find(x=>x.id===ids[0]), b = S.items.find(x=>x.id===ids[k]);
         if (!a || !b) continue;
+        // a known flavour/scent/size conflict or a prior "not the same product"
+        // decision overrides the model's own grouping — it never gets to
+        // relitigate either one
+        if (variantConflict(a, b) || isNotDuplicate(a, b)) continue;
         existing.add(key);
         dedupePairs.push({a, b, score:1, reason:g.reason||null});
         added++;
@@ -1727,8 +2347,8 @@ function openStaging(rows){
           <button type="button" class="chip on" data-fzaccept="${esc(fz.item.id)}" style="padding:4px 9px;font-size:11.5px">זה אותו מוצר</button>
         </div>` : ''}
         <div class="two">
-          <input class="stName" value="${esc(r.name)}" placeholder="שם">
-          <input class="stBrand" value="${esc(r.brand||'')}" placeholder="מותג">
+          <input class="stName" dir="auto" value="${esc(r.name)}" placeholder="שם">
+          <input class="stBrand" dir="auto" value="${esc(r.brand||'')}" placeholder="מותג">
         </div>
         <div class="two">
           <input class="stQty" type="number" inputmode="numeric" min="0" value="${Number(r.qty)||1}" placeholder="כמות">
@@ -1810,7 +2430,20 @@ function parseCommandPrompt(text, catalog, cats){
     '- "תוסיף קפה לרשימת הקניות"        -> add_shopping_extra',
     '- "יש לי עוד שני שמפו"              -> increase_qty, qty 2',
     '',
-    'For each operation:',
+    'Also recognize READ-ONLY QUESTIONS — the user is asking, not commanding:',
+    '- "כמה שמפו יש לי"              -> intent "query", query.type "count", query.itemName "שמפו"',
+    '- "מה חסר?" / "מה צריך לקנות"   -> intent "query", query.type "shopping_list"',
+    '- "מה דורש תשומת לב"            -> intent "query", query.type "low_stock"',
+    '- "מה יש במקרר/במזווה/במקפיא"   -> intent "query", query.type "zone",',
+    '  query.zone "fridge"/"pantry"/"freezer" respectively',
+    '',
+    'For a question like these, return intent "query", an EMPTY operations array,',
+    'and fill in "query". You NEVER answer the question yourself with a number or a',
+    'fact — you only classify which question it is; the app looks up the real answer',
+    'from its own local data. If a sentence is neither a clear command nor a',
+    'recognizable question type, use intent "unknown" with empty operations and no query.',
+    '',
+    'For each operation (when the sentence is a command, not a question):',
     '- If the product clearly matches something in the existing catalog below, set',
     '  "itemId" to that id and "name" to that item\'s exact existing name.',
     '- If it does not match anything existing AND the user clearly means to add it as',
@@ -1845,10 +2478,14 @@ const PARSE_SCHEMA = {
       action:{type:'STRING'}, itemId:{type:'STRING'}, name:{type:'STRING'},
       qty:{type:'INTEGER'}, inventoryMode:{type:'STRING'}, kitchenZone:{type:'STRING'},
       confidence:{type:'NUMBER'}
-    }, required:['action','name','qty'] } }
+    }, required:['action','name','qty'] } },
+    query:{ type:'OBJECT', properties:{
+      type:{type:'STRING'}, itemName:{type:'STRING'}, zone:{type:'STRING'}
+    } }
   },
   required:['intent','message','operations']
 };
+const QUERY_TYPES = ['count','low_stock','shopping_list','zone','unknown'];
 
 function sanitizeParseResult(parsed, catalog){
   const validIds = new Set(catalog.map(i=>i.id));
@@ -1861,7 +2498,13 @@ function sanitizeParseResult(parsed, catalog){
     kitchenZone: ['fridge','pantry','freezer'].includes(o.kitchenZone) ? o.kitchenZone : '',
     confidence: Math.max(0, Math.min(1, Number(o.confidence)||0))
   })).filter(o => o.action && o.name);
-  return { intent:String(parsed.intent||'unknown').slice(0,40), message:String(parsed.message||'').slice(0,200), operations:ops };
+  const rawQuery = parsed.query && typeof parsed.query === 'object' ? parsed.query : null;
+  const query = rawQuery ? {
+    type: QUERY_TYPES.includes(rawQuery.type) ? rawQuery.type : 'unknown',
+    itemName: String(rawQuery.itemName||'').trim().slice(0,80),
+    zone: ['fridge','pantry','freezer'].includes(rawQuery.zone) ? rawQuery.zone : ''
+  } : null;
+  return { intent:String(parsed.intent||'unknown').slice(0,40), message:String(parsed.message||'').slice(0,200), operations:ops, query };
 }
 
 async function parseCommandDirect(text, catalog, cats, key){
@@ -1890,10 +2533,59 @@ async function submitAsk(){
       if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || `שגיאה ${res.status}`);
       result = await res.json();
     }
-    openAskConfirm(result);
+    if (result.intent === 'query'){
+      openAskAnswer(answerQuery(result.query), result.message);
+    } else {
+      openAskConfirm(result);
+    }
   } catch(err){
     toast('לא הצלחתי להבין: ' + err.message);
   }
+}
+
+/* ---------- read-only queries ----------
+   The model only classifies WHICH question this is (query.type/itemName/
+   zone) — it never states a number or a fact itself. Every answer here is
+   composed from S directly, so "how much X" always reflects real stock,
+   never a model guess. */
+function answerQuery(q){
+  q = q || {};
+  const type = q.type || 'unknown';
+  const itemName = (q.itemName || '').trim();
+
+  if (type === 'count'){
+    if (!itemName) return 'לא ציינת איזה מוצר.';
+    const low = itemName.toLowerCase();
+    const hit = S.items.find(it => (it.name||'').toLowerCase().includes(low) || (it.brand||'').toLowerCase().includes(low))
+      || (fuzzyCandidate(itemName, '', null) || {}).item;
+    if (!hit) return `לא מצאתי מוצר בשם "${itemName}" במלאי.`;
+    return `יש לך ${Number(hit.qty)||0} ${hit.name}${hit.brand?' ('+hit.brand+')':''} במלאי.`;
+  }
+
+  if (type === 'low_stock'){
+    const list = getNeedsAttention();
+    if (!list.length) return 'הכל תקין — שום דבר לא דורש תשומת לב כרגע.';
+    return 'דורשים תשומת לב: ' + list.slice(0,8).map(it => `${it.name} (יש ${Number(it.qty)||0})`).join(', ');
+  }
+
+  if (type === 'shopping_list') return shopText();
+
+  if (type === 'zone' && ZONES.includes(q.zone)){
+    const items = getKitchenItemsByZone(q.zone);
+    if (!items.length) return `אין פריטים רשומים ב${ZONE_LABEL[q.zone]}.`;
+    return `ב${ZONE_LABEL[q.zone]}: ` + items.map(it => `${it.name} (${Number(it.qty)||0})`).join(', ');
+  }
+
+  return 'לא הצלחתי לזהות שאלה על המלאי. נסה לנסח אחרת.';
+}
+
+function openAskAnswer(answer, message){
+  sheet(`
+    <h2>תשובה</h2>
+    ${message ? `<p class="muted bidi" style="margin-bottom:8px">${esc(message)}</p>` : ''}
+    <p class="bidi" style="white-space:pre-wrap">${esc(answer)}</p>
+    <button class="btn a" id="ansClose" style="margin-top:14px">סגירה</button>
+  `, () => { $('ansClose').onclick = closeSheet; });
 }
 
 function opLabel(action){
@@ -1996,7 +2688,8 @@ function closeSheet(){ stopCam(); $('modals').innerHTML = ''; }
 document.addEventListener('click', e => {
   const t = e.target.closest(
     '[data-q],[data-edit],[data-sp],[data-ct],[data-tab],[data-zone],' +
-    '[data-fam],[data-kitchen-item],[data-need],[data-xgot],[data-xdel]'
+    '[data-fam],[data-kitchen-item],[data-need],[data-xgot],[data-xdel],' +
+    '[data-shopsuggest],[data-insight-accept],[data-insight-dismiss]'
   );
   if (!t) return;
   if (t.dataset.q !== undefined){
@@ -2008,7 +2701,7 @@ document.addEventListener('click', e => {
     logEvent(d > 0 ? 'PURCHASE' : 'USED', it.id, d, 'כפתור מהיר');
     save();
   } else if (t.dataset.edit !== undefined){ openItem(t.dataset.edit); }
-  else if (t.dataset.tab !== undefined){ UI.tab = t.dataset.tab; UI.q = ''; render(); }
+  else if (t.dataset.tab !== undefined){ UI.tab = t.dataset.tab; UI.q = ''; UI.shopQ = ''; render(); }
   else if (t.dataset.zone !== undefined){ UI.zone = t.dataset.zone; render(); }
   else if (t.dataset.fam !== undefined){ openFamily(t.dataset.fam); }
   else if (t.dataset.kitchenItem !== undefined){ openKitchenActions(t.dataset.kitchenItem); }
@@ -2023,6 +2716,12 @@ document.addEventListener('click', e => {
   else if (t.dataset.xdel !== undefined){
     S.extras = S.extras.filter(x=>x.id!==t.dataset.xdel); save(false);
   }
+  else if (t.dataset.shopsuggest !== undefined){ commitShopAdd(t.dataset.shopsuggest); }
+  else if (t.dataset.insightAccept !== undefined){
+    const ins = computeInsights().find(i=>i.id===t.dataset.insightAccept);
+    if (ins) addShoppingItemRef(ins.itemId);
+  }
+  else if (t.dataset.insightDismiss !== undefined){ dismissInsight(t.dataset.insightDismiss); }
 });
 
 /* static chrome (header, ask bar, tab bar) is never replaced by render(),
