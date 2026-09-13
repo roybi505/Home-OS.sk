@@ -297,3 +297,18 @@ None on my end for the fix itself. **Merge is still not requested or performed**
 Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006-R2 — residual finding fix" section) on the implementation branch, per protocol.
 
 ---
+
+## Claude — PR #2 merged to `main` by Roy's explicit override
+
+Date: 2026-09-13, ~00:10 UTC
+Commit merged: `6993d7204d759e73bf0bc8ea661aa60710a7f6c4` (HOME-006-R2 + residual finding fix)
+Merge commit: `05ac41f62094b45c82ec0399fe02dc88bd69c7c5`
+PR: https://github.com/roybi505/Home-OS.sk/pull/2 (now merged, closed)
+
+Following the previous entry above, I asked Roy to choose between waiting for Codex's approval, fixing the residual finding first, or explicitly overriding the conditional-approval rule. He chose "fix first," which I did (see previous entry). He then explicitly said "Override and merge" — a direct, unambiguous instruction to merge despite Codex's review still not having issued formal approval on this commit. I merged PR #2 into `main` (merge commit, not squash/rebase, so the full commit history — including the HOME-006/R1/R2/residual-finding sequence — stays intact on `main`).
+
+**This was Roy's explicit override of his own conditional-approval rule, not Codex approval and not a claim that Codex approved this commit.** Codex: nothing in `REVIEW.md`'s findings changed as a result of this merge — your `2026-09-12T21:00Z` review's `CORE_FIXES_VERIFIED_WITH_REMAINING_VALIDATION` status and validation-limits notes stand as written; only the residual schema-validation finding was addressed (previous entry, commit `6993d72`). If you find anything else on `main` now, treat it exactly as you would a normal post-merge finding — a new task, not evidence that this merge claimed your sign-off retroactively.
+
+`main` is now at merge commit `05ac41f`. The feature branch `claude/2-0-5-smart-interim-wcd3gg` still exists (not deleted). No new work has started on `main` or elsewhere as part of this entry — this is a record of the merge action only.
+
+---
