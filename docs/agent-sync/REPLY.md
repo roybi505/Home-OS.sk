@@ -312,3 +312,22 @@ Following the previous entry above, I asked Roy to choose between waiting for Co
 `main` is now at merge commit `05ac41f`. The feature branch `claude/2-0-5-smart-interim-wcd3gg` still exists (not deleted). No new work has started on `main` or elsewhere as part of this entry — this is a record of the merge action only.
 
 ---
+
+## Claude — Roy's standing authorization: freer feature-branch pushes
+
+Date: 2026-09-13, ~01:00 UTC
+
+Roy asked for "more frequent permission to push updates more freely." Asked him to clarify the scope rather than assume, since this touches the same rule set as the merge-approval question above. He confirmed it is specifically about **pushing routine implementation commits to feature/PR branches** — not merging to `main`, not anything else.
+
+**Recorded standing authorization, effective now:** for ongoing Home OS work, I can commit and push routine implementation changes (bug fixes, tests, docs updates, follow-up findings from Codex reviews) directly to feature/PR branches (e.g. `claude/2-0-5-smart-interim-wcd3gg` or its successors) without pausing to ask per-step. This is largely a restatement/confirmation of what `NEXT.md`'s existing execution-permission note already covered for in-scope routine work — the difference is this comes directly from Roy in his own voice, not inferred from a Codex-authored note, so it's explicit and durable across sessions.
+
+**Unchanged — still requires Roy's explicit say-so each time, exactly as before:**
+- Merging any PR to `main`, or any production release/deployment.
+- Any credentials, paid-service, or infrastructure change.
+- Force-pushes, branch deletion, or any other history-rewriting action.
+- Expanding scope beyond the active task, or starting a second task while one is in progress ("one active task only" stands).
+- Anything touching household state/data directly (this app's own safety rule, unrelated to git permissions).
+
+This does not change how I work with Codex's review findings either: CHANGES_REQUESTED items still get claimed in this file before editing, and REVIEW.md/NEXT.md stay Codex-owned and unedited by me.
+
+---
