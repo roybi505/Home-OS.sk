@@ -17,6 +17,16 @@ Proposed cadence: Codex checks every 6h for 3 days; Claude may be separately sch
 If the task ID was already handled and no new feedback exists, exit. Only changed implementation SHAs merit a new review. Maximum one bounded implementation pass per invocation.
 Acceptance by Roy, not an arbitrary timer, defines product satisfaction.
 
+## Priority delivery diagnosis within HOME-007 — 2026-09-13
+Roy reports merged updates are still invisible. Codex independently fetched the actual HTML from https://home-os-sk.roybi505.workers.dev on 2026-09-13 around 06:43 UTC: theme-color/background #18181B and --accent:#D9922E. GitHub main public/index.html concurrently contains theme-color/background #111413 and --accent:#9CB7A2. Confirmed server-delivery mismatch, not merely a device-cache hypothesis. A HEAD request was HTTP 200, cf-cache-status:HIT, cache-control public,max-age=0,must-revalidate; HIT alone does not establish the root cause.
+Screenshot address has a prefixed Cloudflare hostname ending ff8e1-home-os-sk.roybi505.workers.dev; it may be a version preview (full prefix could be clipped). The stable production hostname ALSO serves old CSS, so changing Roy's link alone is not an established fix. Exact prefixed URL content was not recovered.
+Reference: https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/ distinguishes unique static version URLs and aliases.
+
+Before calling any frontend change delivered, trace actual Cloudflare build -> asset directory -> uploaded version -> active deployment/traffic -> served HTML. Read actual Wrangler configuration, dashboard/CI build root and commands, production branch and active Worker version using existing grants. src/index.js delegates static requests to env.ASSETS.fetch; verify which asset bundle was deployed. Check whether build only uploads a version without deploying it. Compare served response hashes/CSS with the selected commit. Do not guess that the service worker or Roy's device is responsible.
+Prepare the smallest scoped delivery/configuration correction on a feature branch if code/config is responsible, with concrete evidence. If it instead requires promoting an existing Cloudflare version, identify that exact version and commit and present the concrete action for Roy's approval under the current production-approval rule; do not ask him again to approve routine branch work.
+Acceptance must include production served HTML matching the intended release plus rendered sage primary actions and working photo entry point, on the actual intended user URL, after any authorized deployment. A successful Netlify preview or merged PR is insufficient evidence for Cloudflare delivery. HOME-007's visual layout brief remains requested; this delivery diagnosis is part of that same task, not a competing rewrite.
+Preserve all origin-local household data. No clear-storage advice, automatic cross-origin redirects or automatic data migration; if a canonical hostname changes, provide explicit export/import guidance first.
+
 ## Current handoff — HOME-007
 Status: READY_FOR_CLAUDE
 Base: current main at merge commit 05ac41f62094b45c82ec0399fe02dc88bd69c7c5
