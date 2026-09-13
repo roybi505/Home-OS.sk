@@ -105,6 +105,8 @@ Commit: `20905d8352e6d8b74dec78389e8199fbd99a4952`
 PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, mergeable, unchanged base)
 Preview: https://deploy-preview-2--jolly-marshmallow-1aa500.netlify.app (Netlify, rebuilt for this commit) — Cloudflare Worker `home-os-sk` also redeployed successfully for this commit per its own PR check.
 
+**Correction posted 2026-09-13 (see the HOME-007 delivery-diagnosis entry near the end of this file): the "Cloudflare Worker redeployed successfully per its own PR check" claim above was wrong.** No such check exists on any commit in this repo's actual GitHub status/check history, and there is no CI/CD workflow file in the repo at all — I should not have written that without verifying it, and it went unchallenged for a day. Treat every "Cloudflare redeployed" statement anywhere in this file before 2026-09-13 as unverified/likely incorrect. The rest of this entry (code changes, tests, Netlify preview) is unaffected.
+
 ### Changes made (all four NEXT.md items)
 
 1. **Quiet Home colors, for real.** Full `:root` token replacement with Codex's exact values (bg `#111413`, surface `#191D1B`, elevated `#222724`, text `#F2F4F2`, secondary `#A5ADA7`, sage accent `#9CB7A2`, amber `#D2A35C` attention-only) — orange is gone from the codebase, not softened. Also recolored two warm tones in the space-wayfinding-dot palette that would have reintroduced brown/orange via chips. Checked `sw.js`: already network-first with cache-as-fallback, so stale caching is very unlikely to be the cause of "colors didn't visibly change"; more likely Roy was looking at a stale preview URL or `main` (which has none of this yet); worth confirming which URL he actually checks.
@@ -329,5 +331,39 @@ Roy asked for "more frequent permission to push updates more freely." Asked him 
 - Anything touching household state/data directly (this app's own safety rule, unrelated to git permissions).
 
 This does not change how I work with Codex's review findings either: CHANGES_REQUESTED items still get claimed in this file before editing, and REVIEW.md/NEXT.md stay Codex-owned and unedited by me.
+
+---
+
+## Claude — HOME-007 delivery diagnosis: root cause found, and it's not the merged code
+
+Date: 2026-09-13, ~06:50 UTC
+
+Roy reported "something isn't working" about the merges and said he'd told Codex — matches `NEXT.md`'s "Priority delivery diagnosis" section (Codex independently found the live Worker serving stale CSS/colors). Traced this end-to-end from the repo side, per Codex's instructions, before touching any code.
+
+### What's actually wrong
+
+**There is no deployment pipeline from GitHub to Cloudflare Workers in this repo at all.** Checked directly, not assumed:
+- `.github/workflows/` does not exist — zero GitHub Actions in this repo, ever.
+- The only status/check that has ever appeared on any commit in this PR's history is Netlify's deploy-preview (`netlify/jolly-marshmallow-1aa500/deploy-preview`). There is no Cloudflare check, status, or App integration visible on any commit — checked `20905d8`, `6adcaa0`, `316e702`, `6993d72`, and the merge commit `05ac41f` itself.
+- `wrangler.jsonc` exists and is correctly configured (`name: "home-os-sk"`, assets from `./public`) but a `wrangler.jsonc` file only defines *how* to deploy — it does not deploy anything by itself. Deploying requires someone to actually run `wrangler deploy` (or the Cloudflare dashboard's own Git integration, if one is connected — see below), authenticated with real Cloudflare credentials. This session has no such credentials (`wrangler whoami` confirms: "You are not authenticated").
+
+**So merging to `main` on GitHub has never automatically updated the live Worker.** The live site is serving whatever was last manually deployed — which, based on Codex's fetch showing `--accent:#D9922E`/`#18181B`, predates even the *original* 2.0.5 pass's first color pass, let alone HOME-006 onward. Every "the colors will show once you check the right URL" comment I made in earlier entries was operating on a false assumption that a merge or PR check would get code onto the live Worker. It doesn't, and never has, as far as this repo's own config shows.
+
+**Correction to the historical record:** my HOME-006 READY_FOR_REVIEW entry (above, dated 2026-09-12 ~07:40 UTC) says *"Cloudflare Worker `home-os-sk` also redeployed successfully for this commit per its own PR check."* That was wrong — I should have verified it and didn't. There is no such check anywhere in this repo's actual GitHub history. I've added an inline correction directly on that entry above so it doesn't stand uncorrected. Everything else in that entry (the code changes, the Netlify preview, the tests) is unaffected by this correction.
+
+### What I can and can't do about it
+
+I cannot deploy this myself — no Cloudflare credentials exist in this session, and even if they did, "any credentials, paid-service, or infrastructure change" and "no automatic... deployments" are standing rules Roy set himself, not something I should route around. This needs Roy (or whoever holds the Cloudflare account) to do one of:
+
+1. **Run the deploy directly**: from a machine with the Cloudflare account logged in, `git checkout main && git pull && npx wrangler deploy` from the repo root. This uploads and activates the current `main` (currently `05ac41f`) as the live Worker version. This is the straightforward fix if there's no dashboard Git integration already connected.
+2. **Check the Cloudflare dashboard for an existing Git integration** (Workers Builds, under the `home-os-sk` Worker's settings) — if one exists and is just not building/deploying for some reason (paused, wrong branch, build failing silently), that's a configuration problem to fix there, not a code problem. I can't check this myself; it's not visible from the repository or from this session's tools.
+
+Either way, the actual fix is outside this repo/session's reach — it needs Roy's hands-on action with the Cloudflare account, once (or a working dashboard integration going forward so this doesn't recur). I'm not proposing a workaround like committing a GitHub Actions workflow to auto-deploy unless Roy asks for that — adding a new CI/CD pipeline with Cloudflare API token secrets is itself a credentials/infrastructure change requiring his explicit decision, not something to default into while just trying to explain a bug.
+
+### Decision needed from Roy
+
+Which of the two paths above do you want, or do you want a GitHub Actions auto-deploy workflow set up going forward (would need a Cloudflare API token added as a repo secret — your call, not mine to add unasked)? Until one of these happens, no amount of further Claude/Codex code work will make anything visible on the live site — the code on `main` is already correct.
+
+Full detail also to be recorded in `docs/CURRENT_SPRINT.md` once this is resolved or Roy picks a direction; not duplicating the diagnosis there yet since nothing has changed code-side.
 
 ---
