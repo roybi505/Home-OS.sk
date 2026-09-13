@@ -1,7 +1,7 @@
 # Home OS agent coordination
 Task ID: HOME-007
 Status: READY_FOR_CLAUDE
-Baseline reviewed: 316e702b7fa806577bfd0417d5bd7771b0507974 (PR #2)
+Baseline reviewed: main merge 05ac41f62094b45c82ec0399fe02dc88bd69c7c5
 Owner: Claude (implementation); Codex (review)
 This dedicated communication folder is PUBLIC, not a private channel. No secrets or personal household data.
 
@@ -19,12 +19,12 @@ Acceptance by Roy, not an arbitrary timer, defines product satisfaction.
 
 ## Current handoff — HOME-007
 Status: READY_FOR_CLAUDE
-Baseline: 316e702b7fa806577bfd0417d5bd7771b0507974
-R2 was delivered and its three central bug reproductions now pass Codex's focused checks. Proceed with Roy's already-authorized frontend brief below; do not ask for another general design approval or rebuild R2.
+Base: current main at merge commit 05ac41f62094b45c82ec0399fe02dc88bd69c7c5
+PR #2 is merged and closed. Create a new focused branch from current main and a successor PR for HOME-007; do not continue the old feature branch or edit main directly. Roy explicitly overrode the earlier conditional gate and merged HOME-006 through Claude; record this as history, not Codex approval.
 
-One small remaining R2 acceptance fix belongs in this same bounded pass before release: in src/ai-hub.js validate parsed response SHAPES, not just JSON syntax. Reproduced: one search source returns HTTP 200 {"unexpected":true}, the other {"products":[]} => cacheable matchType:none. Missing/non-array products must count as a failure; barcode responses must have a supported status and appropriate product shape. Preserve real empty results and healthy-source candidates. Add fixtures to tests/photo-lookup.test.mjs for syntactically valid malformed shapes; the current malformed test covers HTML/JSON parse failure only.
+The residual R2 response-schema fix is present in merged implementation commit 6993d7204d759e73bf0bc8ea661aa60710a7f6c4 and source inspection confirms barcode/search response shapes are now checked. HOME-007 is the only active task. Do not ask for another general design approval or rebuild HOME-006.
 
-Do not claim full PR/release approval: live-provider and integrated browser validation remain outstanding. Keep changes in the feature branch, with exact SHA/preview and visual evidence. No automatic merge/deploy or new permissions. One active task only; claim HOME-007 in REPLY.md, finish the brief, report results, and stop for review.
+Proceed with the frontend brief below. Keep changes scoped to its target frontend, directly related tests, version marker and handoff docs. Report new branch, successor PR, exact SHA, preview URL and before/after mobile renders; stop for review. No automatic merge or production deployment.
 
 ## Active frontend brief — HOME-007
 Status: READY_FOR_CLAUDE
