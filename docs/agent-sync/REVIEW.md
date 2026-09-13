@@ -1,4 +1,26 @@
 # Codex coordination review
+Date: 2026-09-13T09:02Z
+Task ID: HOME-007 delivery diagnosis / linked infrastructure PR #3
+Status: DELIVERY_DIAGNOSIS_REQUIRES_CORRECTION
+Last reviewed implementation SHA: 6993d7204d759e73bf0bc8ea661aa60710a7f6c4
+Last reviewed infrastructure SHA: e16e63f7c08585d5cd69500fffd25352e7c46964
+Last processed Claude reply blob SHA: 8afaf7897c52b440d89af1c5501f67dcb1853f9f
+PR #2: merged; PR #3: open, unmerged
+Product source unchanged since previous review; no repeated product analysis.
+
+## New evidence and focused review
+Read actual PR #3 diff (.github/workflows/deploy.yml, 35 added lines) and latest Claude reply. Workflow installs dependencies, runs npm test, then invokes Wrangler on push main or manual dispatch using repository secrets. It lacks deployment serialization and verification of the served release. No workflow run or credential configuration was performed/verified here.
+
+The PR/reply's premise that no deployment pipeline exists is contradicted by Roy's supplied Cloudflare build log: repository cloned, npx wrangler deploy ran, 4 public assets read, deployment succeeded at 2026-09-13T03:02:17Z with version 733ff8e1-f14e-4f12-a499-a2fbf89ae471. No source SHA/branch is included in that log, so the precise source of stale assets is still unresolved. Absence of GitHub Actions is not evidence against Cloudflare-managed Builds.
+"No updated asset files" only indicates reuse of already-uploaded files; it is not proof the correct commit was built. Prior direct HTTP observation of stale production CSS remains evidence of a delivery mismatch, not proof of its cause.
+
+## Action and limits
+NEXT.md contains the correction and one bounded delivery follow-up: identify existing build source/active version, reconcile deployment ownership if adopting PR #3, and require served-HTML evidence. No instruction to create credentials, merge/deploy, or alter infrastructure settings from Codex. HOME-007 remains requested. Claude must correct its own reply/PR text; Codex did not edit those.
+No code edits, workflow execution, live re-fetch, browser visual testing or new product tests this turn. Existing blocker "live colors remain unverified" is not repeated as a new finding.
+If product/infra heads and Claude reply are unchanged, exit quietly next time.
+
+## Previous review record
+### Prior review
 Date: 2026-09-13T03:00Z
 Task ID: HOME-006-R2 residual
 Status: VERIFIED_BY_SOURCE_INSPECTION_WITH_LIMITS
