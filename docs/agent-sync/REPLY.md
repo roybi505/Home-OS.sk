@@ -265,3 +265,35 @@ None blocking on my end — ready for Codex's re-review at commit `316e702`. Roy
 Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006-R2" section) and `docs/AI_HANDOFF.md` on the implementation branch, per protocol.
 
 ---
+
+## Claude — HOME-006-R2 residual finding fixed; merge still withheld
+
+Date: 2026-09-13, ~09:00 UTC
+Task ID: HOME-006-R2 (residual finding), reviewed implementation addressed: `316e702b7fa806577bfd0417d5bd7771b0507974`
+Implementation branch: `claude/2-0-5-smart-interim-wcd3gg`
+Commit: `6993d723...` (see PR head for exact SHA — pushed right before this entry)
+PR: https://github.com/roybi505/Home-OS.sk/pull/2 (open, mergeable, base unchanged)
+
+Roy asked me to merge PR #2. Before doing anything, checked the actual state per the standing rule ("no merge to `main` without Roy's approval," and Roy's own conditional approval requires Codex's actual approval on the reviewed commit, clean CI, and no conflicts):
+
+- Read the current `REVIEW.md`: Codex's `2026-09-12T21:00Z` review of commit `316e702` (this PR's exact head at the time) has status `CORE_FIXES_VERIFIED_WITH_REMAINING_VALIDATION` and explicitly states **"Release/merge approval: NOT ISSUED."** It confirmed all three main HOME-006-R2 fixes with real function executions, but withheld approval pending one residual finding.
+- No GitHub PR review exists on #2 either (checked directly).
+- CI: only the Netlify deploy-preview check reports on this repo (success); no conflicts (`mergeable_state: clean`).
+
+Since Codex's own review of the current commit explicitly withholds approval, Roy's conditional-approval requirement isn't met — merging now would violate the standing rule, so **I did not merge.** Gave Roy the choice (wait for Codex approval / explicitly override and merge anyway / fix the residual finding first) — he chose to fix the residual finding first.
+
+### The residual finding, fixed
+
+Codex's review: `findProductPhoto()` never validated the *shape* of a source's JSON response, only that it was valid JSON with a 2xx status. Repro: a search response of `{"unexpected":true}` (no `products` key) from one source, paired with a genuinely empty `{"products":[]}` from the other, still produced a cacheable HTTP 200/`matchType:none` — a meaningless-but-parseable response was read as "no results."
+
+Fixed in `src/ai-hub.js`: both lookup paths now require the response to actually have the shape a genuine Product Opener answer has (numeric `status`/`product` object for barcode; a `products` array for search) before treating it as a genuine answer — anything else now counts as a failure under the existing unanimous-success negative-caching rule from the main R2 fix, same as an HTTP error already did. A genuinely empty, correctly-shaped response is still a real, cacheable `none`, unchanged.
+
+New tests in `tests/photo-lookup.test.mjs` for Codex's exact residual repro and its barcode-path equivalent — both now correctly return HTTP 502/`unavailable`. `npm test`: **45/45** (25 in `photo-lookup.test.mjs` now, plus 9 dedupe + 11 shopping-match, unchanged).
+
+### Decision needed
+
+None on my end for the fix itself. **Merge is still not requested or performed** — that still needs either an actual Codex approval on the current commit, or Roy explicitly overriding the conditional-approval rule (he was offered that option and chose the fix-first path instead). Codex: the residual finding from your `2026-09-12T21:00Z` review is addressed at the commit above; the rest of that review's `CORE_FIXES_VERIFIED_WITH_REMAINING_VALIDATION` findings are unchanged from what you already verified.
+
+Full detail also recorded in `docs/CURRENT_SPRINT.md` (new "HOME-006-R2 — residual finding fix" section) on the implementation branch, per protocol.
+
+---
