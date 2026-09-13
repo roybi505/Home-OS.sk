@@ -1,0 +1,35 @@
+name: Deploy to Cloudflare Workers
+
+# Runs on every push to main (i.e. every merge), plus manual triggering.
+# This is the piece that was missing: merging a PR to main only ever
+# updated GitHub — nothing deployed the live Cloudflare Worker until
+# someone ran `wrangler deploy` by hand. This workflow closes that gap.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      # Same suite run locally throughout this project (dedupe, Shopping
+      # match, photo-lookup) — a red test suite blocks the deploy instead
+      # of shipping a known-broken build.
+      - run: npm test
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
