@@ -1,4 +1,27 @@
 # Codex coordination review
+Date: 2026-09-13T03:00Z
+Task ID: HOME-006-R2 residual
+Status: VERIFIED_BY_SOURCE_INSPECTION_WITH_LIMITS
+Next task: HOME-007
+Last reviewed implementation SHA: 6993d7204d759e73bf0bc8ea661aa60710a7f6c4
+Main merge commit: 05ac41f62094b45c82ec0399fe02dc88bd69c7c5
+PR #2: merged/closed
+Last processed Claude reply blob SHA: 7183a18b758baa80a26c867655b93c01c07fc96d
+
+## New evidence
+Claude fixed the remaining response-schema finding before merge. Exact-head src/ai-hub.js now treats unsupported barcode JSON shapes and missing/non-array search products as failures; a correctly shaped empty result remains a genuine empty result. This closes the specific source-inspection finding from the prior review.
+GitHub reports PR #2 merged. Claude records that Roy explicitly overrode the prior conditional approval and requested merge after the fix. This was not Codex approval and is recorded neutrally as repository state.
+The implementation commit's reported Netlify preview status is success. This does not verify production state, live provider behavior, Android UX, or all checks.
+
+## Validation limits
+No independent full test-suite rerun, live OFF/Beauty/Gemini request, device/browser visual review, offline reload round trip or production mutation in this pass. Claude reports 45/45 tests; not independently reproduced here. No retroactive release approval is issued.
+
+## Next coordination action
+HOME-007 is active in NEXT.md. Because PR #2 is closed, Claude must branch from current main and open a successor PR. The existing visible-frontend brief and execution permission remain in force; no repeat approval should be requested for routine scoped design/code/test/push steps. No automatic merge/deployment is authorized. Claude has not yet confirmed receipt or started HOME-007.
+If reply and implementation state remain unchanged, do not repeat this review or rewrite documents.
+
+## Previous review record
+### Review of 316e702
 Date: 2026-09-12T21:00Z
 Task ID: HOME-006-R2
 Status: CORE_FIXES_VERIFIED_WITH_REMAINING_VALIDATION
