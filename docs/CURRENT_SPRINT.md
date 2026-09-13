@@ -5,10 +5,14 @@ PR: https://github.com/roybi505/Home-OS.sk/pull/2
 Issue: https://github.com/roybi505/Home-OS.sk/issues/1
 Coordination: `docs/agent-sync/` on `coordination/home-os` (Claude/Codex/Roy
 cross-agent protocol) — task HOME-006-R1, see that section below.
-Status: **HOME-006-R2 implemented — in review** (original 9-item 2.0.5 scope
+Status: **HOME-006-R2 core fixes verified by Codex; one residual finding now
+also fixed, awaiting re-review/merge approval** (original 9-item 2.0.5 scope
 is Done; HOME-006 was Codex's first follow-up review pass, HOME-006-R1 its
-revision, HOME-006-R2 is the revision addressing Codex's second
-CHANGES_REQUESTED findings on HOME-006-R1 — see `docs/AI_HANDOFF.md` for
+revision, HOME-006-R2 the revision addressing Codex's second
+CHANGES_REQUESTED findings — Codex's `2026-09-12T21:00Z` review of R2
+confirmed all three main fixes but explicitly withheld merge approval
+pending one residual schema-validation gap; that gap is now fixed too, see
+"HOME-006-R2 — residual finding fix" below. See `docs/AI_HANDOFF.md` for
 what still needs Codex/Roy sign-off)
 
 ## Authoritative scope (verbatim from the approved specification)
@@ -606,3 +610,62 @@ Food/Beauty Facts' actual dual data/image licensing (ODbL for data,
 CC-BY-SA for most contributed photos) rather than a per-photo verified
 license lookup — worth a second look if per-image licensing ever needs to
 be exact rather than a general attribution line.
+
+---
+
+# HOME-006-R2 — residual finding fix
+
+Codex's `2026-09-12T21:00Z` review of commit `316e702` confirmed all three
+main HOME-006-R2 fixes with real function executions (status
+`CORE_FIXES_VERIFIED_WITH_REMAINING_VALIDATION`) but explicitly withheld
+merge approval pending one residual finding, deferred rather than blocking
+a full rebuild:
+
+**Finding**: `findProductPhoto()` never validated the *shape* of a
+source's JSON response, only that it parsed as JSON with a 2xx status.
+Codex's repro: a search response of `{"unexpected":true}` (no `products`
+key at all) from one source, paired with a genuinely empty
+`{"products":[]}` from the other, still produced HTTP 200/`matchType:none`
+— a syntactically valid but semantically meaningless response was read as
+"this source has no results," which is not the same thing.
+
+**Fix**: both lookup paths in `src/ai-hub.js` now check the response
+actually has the shape a genuine Product Opener answer has, before
+treating it as one:
+- Barcode path: a real response always carries a numeric `status` (`0` =
+  not found, `1` = found with a `product` object). Anything else —
+  missing `status`, or `status:1` without a usable `product` — now sets
+  `anyFailure` instead of being read as "not found."
+- Search path: a real response always carries a `products` array (even if
+  empty). A response without one now sets `anyFailure` instead of being
+  read as "zero results."
+
+Both changes only affect what counts as a *failure* for the existing
+unanimous-success negative-caching rule from the main R2 fix — a
+genuinely empty, correctly-shaped response is still a real, cacheable
+`none`, exactly as before.
+
+## Tests added
+
+`tests/photo-lookup.test.mjs` gained two cases for Codex's exact residual
+repro and its barcode-path equivalent: a wrong-shaped search response
+(`{"unexpected":true}`) paired with a genuine empty result, and a
+wrong-shaped barcode response (missing `status`) paired with a genuine
+`status:0` not-found. Both now correctly return HTTP 502/`unavailable`,
+never a cacheable `none`. **25/25 passing** in this file now (21 R2 + 2
+new + `mixed health`, unaffected). `npm test` — **45/45**.
+
+## What was verified
+
+`node --check src/ai-hub.js` and the full `npm test` run above. No
+Playwright re-run for this fix — it's server-side only (`src/ai-hub.js`),
+doesn't touch `public/index.html`, `public/sw.js`, or anything the
+existing Playwright coverage exercises.
+
+## Known limitations
+
+Same as HOME-006-R2 above — live network path still not verified from
+this sandbox. No merge has been requested or performed for this fix; per
+Roy's standing rule, merge still requires Codex's actual approval on the
+current commit plus clean CI plus no conflicts, none of which this fix by
+itself changes.

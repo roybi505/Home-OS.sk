@@ -145,10 +145,18 @@ async function findProductPhoto(body){
       const { status, data } = await fetchJsonSafe(`${src.base}/api/v2/product/${encodeURIComponent(barcode)}.json`);
       if (status === 'rate_limited') { sawRateLimit = true; anyFailure = true; continue; }
       if (status !== 'ok') { anyFailure = true; continue; }
+      // A genuine Product Opener response always carries a numeric "status"
+      // (0 = not found, 1 = found with a "product" object). Anything else —
+      // an unrelated JSON shape that still happens to be valid JSON and a
+      // 2xx — is not a real answer about this product and must not be
+      // trusted as a "not found," even though fetchJsonSafe saw it as 'ok'.
+      if (data && data.status === 0) continue; // genuinely not found here
       if (data && data.status === 1 && data.product) {
         const c = candidateFromProduct(data.product, src.label, src.base, barcode);
         if (c) { candidates.push(c); matchType = 'barcode'; break; }
+        continue; // found the product, just no usable/allowlisted image — genuine, not a failure
       }
+      anyFailure = true; // unrecognized response shape — not evidence of anything
     }
   }
 
@@ -161,8 +169,11 @@ async function findProductPhoto(body){
         );
         if (status === 'rate_limited') { sawRateLimit = true; anyFailure = true; continue; }
         if (status !== 'ok') { anyFailure = true; continue; }
-        const products = Array.isArray(data && data.products) ? data.products : [];
-        for (const p of products) {
+        // A genuine search response always carries a "products" array (even
+        // if empty). A different, unrecognized JSON shape is an invalid
+        // response, not evidence of zero results.
+        if (!data || !Array.isArray(data.products)) { anyFailure = true; continue; }
+        for (const p of data.products) {
           const c = candidateFromProduct(p, src.label, src.base, p.code);
           if (c) candidates.push(c);
           if (candidates.length >= 3) break;

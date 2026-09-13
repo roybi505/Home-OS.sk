@@ -143,6 +143,37 @@ function jsonResponse(status, body) {
   restoreFetch();
 }
 
+// --- 6f. Codex's residual HOME-006-R2 finding: a syntactically valid but
+//     wrong-shaped search response ({"unexpected":true}, no "products"
+//     array at all) from one source, paired with a genuinely empty
+//     ({"products":[]}) response from the other — must NOT be cached as a
+//     negative, since the malformed source never actually answered. ---
+{
+  mockFetch(async (url) => {
+    if (String(url).includes('openfoodfacts')) return jsonResponse(200, { unexpected: true });
+    return jsonResponse(200, { products: [] });
+  });
+  const res = await handleAiHub(req({ task: 'find_product_photo', name: 'יוגורט', brand: 'Tnuva' }));
+  const body = await res.json();
+  check('invalid-shape+empty: NOT cached as a genuine none', res.ok, false);
+  check('invalid-shape+empty: matchType signals unavailability', body.matchType, 'unavailable');
+  restoreFetch();
+}
+
+// --- 6g. same idea on the barcode path: a response missing the expected
+//     numeric "status" field entirely must not be read as "not found". ---
+{
+  mockFetch(async (url) => {
+    if (String(url).includes('/api/v2/product/')) return jsonResponse(200, { weird: 'shape' });
+    return jsonResponse(200, { status: 0 }); // genuinely not found on the other source
+  });
+  const res = await handleAiHub(req({ task: 'find_product_photo', barcode: '2222222222222', name: 'מוצר', brand: '' }));
+  const body = await res.json();
+  check('barcode invalid-shape+not-found: NOT cached as a genuine none', res.ok, false);
+  check('barcode invalid-shape+not-found: matchType signals unavailability', body.matchType, 'unavailable');
+  restoreFetch();
+}
+
 // --- 6. one source down, the other healthy: healthy-source candidates survive ---
 {
   mockFetch(async (url) => {
